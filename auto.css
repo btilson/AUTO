@@ -1,0 +1,433 @@
+body	{
+	background-color: #ffffff;
+	color: #000000;
+}
+
+#header {
+	left:0px;
+	top:0px;
+	height:60px;
+	width:100%;
+	background-color: #66ccff;
+	position: absolute;
+}
+
+#header img {
+	left:0px;
+	padding-left:5px;
+	float:left;
+}
+
+#header h1 {
+	font-weight: bold;
+	color: #ffffff;
+	float:left;
+	left:10px;
+	margin-top:15px;
+}
+
+#header h2 {
+	font-size: x-large;
+	font-weight: bold;
+	font-style:italic;
+	color: #ffffff;
+	margin-top:22px;
+	float:left;
+}
+
+#container {
+	position:absolute;
+	top:90px;
+	left:0px;
+	width:100%;
+	font-family: Arial, sans-serif;
+}
+
+#container h1 {
+	font-weight: bold;
+	color: #b60202;
+	padding-left:5px;
+}
+
+#container h2 {
+	padding-left:5px;
+}
+
+#container h3 {
+	font-weight: bold;
+	color: #898989;
+}
+
+#container a {
+	text-decoration:none;
+	font-weight: bold;
+}
+
+#container fieldset {
+	color: gray;
+}
+
+#container p {
+	color: #000000;
+	padding-left:5px;
+}
+
+#container table {
+	width:98%;
+}
+
+#container td.left {
+	width: 32%;
+	vertical-align: middle;
+}
+
+#container td.left h3 {
+	float:left;
+}
+
+#container td.middle {
+	width: 68%;
+	vertical-align: middle;
+}
+
+#container td.right {
+	width: 0%;
+	vertical-align: middle;
+}
+
+#container td.middle select {
+	background-color: #ffffff;
+	color: #000000;
+}
+
+#container td.middle input {
+	background-color: #ffffff;
+	color: #000000;
+}
+
+#container form.floating {
+	position:relative;
+}
+
+#tabspacer {
+	position:absolute;
+	background-color: #ffffff;
+	width:100%;
+	height:1px;
+	left:0px;
+	top:59px;
+}
+
+#tabbar {
+	position: absolute;
+	left:0px;
+	top:60px;
+	background-color: #898989;
+	width:100%;
+	height:27px;
+}
+
+
+div.divider {
+	float:left;
+	width:1px;
+	background-color: #000000;
+	color: #000000;
+	margin-top:7px;
+}
+
+div.spacer {
+	float:left;
+	width:5px;
+	background-color: #898989;
+	color: #898989;
+	margin-top:7px;
+}
+
+div.active {
+	float:left;
+	font-size: small;
+	font-family: Verdana, Arial, Helvetica;
+	font-weight: bold;
+	background-color: #ffffff;
+	color: #aaaaaa;
+	height:20px;
+	margin-top:7px;
+	cursor: pointer;
+}
+
+div.passive {
+	float:left;
+	font-size: small;
+	font-family: Verdana, Arial, Helvetica;
+	font-weight: bold;
+	background-color: #aaaaaa;
+	color: #ffffff;
+	height:20px;
+	margin-top:7px;
+	cursor: pointer;
+}
+
+div.percentbar {
+	position: relative;
+	width: 95%;
+	height:12px;
+	border-width: 1px;
+	border-color: #999999; 
+	border-style: solid;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div.done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #66cccc;
+}
+
+div.pt_done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #3300cc;
+}
+
+div.missing_percent {
+	position: relative;
+	float: right;
+	height:12px;
+	background-color: #ccccff;
+}
+
+div.pause_done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #ffff00;
+}
+
+div.pause_pt_done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #ffff33;
+}
+
+div.pause_missing_percent {
+	position: relative;
+	float: right;
+	height:12px;
+	background-color: #ffffcc;
+}
+
+div.error_done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #ff0000;
+}
+
+div.error_pt_done_percent {
+	position: relative;
+	float: left;
+	height:12px;
+	background-color: #ff0033;
+}
+
+div.error_missing_percent {
+	position: relative;
+	float: right;
+	height:12px;
+	background-color: #ff7575;
+}
+
+div.contentbar {
+	position: relative;
+	width: 95%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+a.contentbar {
+	color: #898989;
+}
+
+a.db_list {
+	color: #898989;
+}
+
+#table_list {
+	text-align: left;
+}
+
+#alertbar {
+	position: relative;
+	text-align: center;
+	width: 800px;
+	background-color: #FFFECE;
+	background: #FFFECE; 
+	border: #F0BF00 1px solid; 
+	padding: .5em; 
+	padding-left: 1em; 
+	color: black;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#alertbar table{ 
+	margin-left: auto;
+	margin-right: auto;
+	width: 90%;
+	text-align: left;
+}
+
+#conf_table table{ 
+	text-align: left;
+}
+
+#rss table{ 
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+	text-align: left;
+	border: 3;
+	cellspacing: 1;
+	cellpadding: 1;
+}
+
+#cat table{ 
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+	text-align: left;
+	border: 3;
+	cellspacing: 1;
+	cellpadding: 1;
+}
+
+#filterbar {
+	position: relative;
+	text-align: center;
+	width: 95%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#filterbar a {
+	text-decoration:none;
+	font-weight: bold;
+	font-size: 14px;
+	font-family: "lucida grande", Tahoma, Verdana, Arial, Helvetica, sans-serif;
+}
+
+#filtertextbar {
+	position:absolute;
+	right: 0px;
+	top: 2px;
+}
+
+a.unselected {
+	color: #898989;
+}
+
+a.selected {
+	background-color: #aaaaaa;
+	color: #ffffff;
+}
+
+#viewsetbar {
+	position:absolute;
+	right: 0px;
+	top: 0px;
+}
+
+table.topcontent {
+	width: 100%;
+	font-size: 14px;
+	font-family: "lucida grande", Tahoma, Verdana, Arial, Helvetica, sans-serif;
+}
+table.bottomcontent {
+	width: 100%;
+	font-size: small;
+	font-family: "lucida grande", Tahoma, Verdana, Arial, Helvetica, sans-serif;
+	color: #777777;
+}
+
+div.breakerbar {
+	position: relative;
+	width: 95%;
+	height:1px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: #bbbbbb;
+}
+
+div.breakerbar_small {
+	position: relative;
+	text-align: center;
+	width: 35%;
+	height:1px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: #bbbbbb;
+}
+
+#collapsibleList li {
+  cursor:auto;
+	list-style-image:url('images/button.png');
+}
+
+li.collapsibleListOpen {
+  cursor:pointer;
+	list-style-image:url('images/button-open.png');
+}
+
+li.collapsibleListClosed {
+  cursor:pointer;
+	list-style-image:url('images/button-closed.png');
+}
+
+li.listitem{
+  cursor:default;
+	list-style-image:url('images/button.png');
+}
+
+#editor {
+	position:absolute;
+	right:5px;
+	top:15px;
+}
+
+#footer {
+	position: relative;
+	background-color: #898989;
+	width: 100%;
+	height:27px;
+	margin-top:20px;
+	top:auto;
+}
+
+#footer p {
+	position:absolute;
+	right:10px;
+	margin-top:5px;
+	color:#FFFFFF;
+	font-weight: bold;
+}
+
+#tabbar a {
+	display:block;
+	text-decoration:none;
+	padding-left:5px;
+	padding-right:5px;
+	padding-bottom:4px;
+}
+
+#tabbar div.passive a {
+	color: #ffffff;
+	}
+
+#tabbar div.active a {
+	color: #aaaaaa;
+	}
