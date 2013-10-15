@@ -552,6 +552,8 @@ sub process_rss {
 		#Force a blank value for the include if none provided.
 		$include_value = "" unless defined $include_value;
 
+		my $show_name = $search_value;
+
 		# Change whitespace in show name to be generic regex match anything characters
 		$search_value =~ s/\s/\./g;
         
@@ -600,14 +602,14 @@ sub process_rss {
 					$return .= "Torrent file $item->{'title'}.torrent downloaded\n";
 				}
                 	}
-                	$return .= add_rss_download($torrent_location,$search_value,$verbose);
+                	$return .= add_rss_download($torrent_location,$search_value,$show_name,$verbose);
         	}
 	}
 
 	return $return;
 }
 
-sub process_movierss {
+sub process_movie_rss {
 	
 	my $rss = shift;
 	my $verbose = shift;
@@ -708,6 +710,7 @@ sub process_movierss {
 sub add_rss_download {
         my $torrent_location = shift;
         my $search_value = shift;
+        my $rss_show_name = shift;
         my $verbose = shift;
         my $show_name;
         my $season_no;
@@ -715,6 +718,7 @@ sub add_rss_download {
         my $torrent_path;
         my $torrent_file;
         my $query;
+	my $hash;
         
 	my $ds = get_datasource();
         my $dbh = DBI->connect($ds) || die "DBI::errstr";
@@ -782,14 +786,16 @@ sub add_rss_download {
 		$episode = $2;
 	}
 
-	$show_name = $search_value;
+	#$show_name = $search_value;
+	$show_name = $rss_show_name;
 		
 	#print "Show name is |$show_name|\n";
         #print "Season is |$season_no|\n";
         #print "Episode is |$episode|\n";
         
 	# Swap out dots in name for whitespace (to be swapped out later for underscores)
-        $show_name =~ s/\./ /g;
+	# Commented out - Should not be needed any more with show names coming from RSS directly
+        #$show_name =~ s/\./ /g;
 	
 	# Swap out regex start and end characters for the name
         $show_name =~ s/^\^//g;
@@ -833,7 +839,7 @@ sub add_rss_download {
 	#print "Show name is |$show_name|\n";
         #print "Season is |$season_no|\n";
         #print "Episode is |$episode|\n";
-       
+ 
 	if ($config{rss_sorting} eq "on") { 
         	$download_path = $download_path."/".$show_name."/";
         	$status = directory_check($download_path);
@@ -844,6 +850,7 @@ sub add_rss_download {
 
         # Uncomment for testing show regex parsing
         #print "Final download path is |$download_path|\n";
+        #print "Final torrent location is |$torrent_location|\n";
 
         #check if this is a PROPER or REAL release and if so, ignore rules and force re-download
         #currently will cause a stopped download of a proper to continue to add itself over
@@ -878,9 +885,13 @@ sub add_rss_download {
 
 		$lock_count++;
 
-		if ($lock_count >= 20) {
+		if ($lock_count >= 60) {
 			#Maybe email here?
-			die "AUTO lock count exceeded\n";
+			#die "AUTO lock count exceeded\n";
+			$return .= "operation lock stuck, overriding and stopping stuck processes\n";
+			op_lock_remove();
+			`pkill perl`;
+  			$lock_check = op_lock_check();
 		}
 
 		sleep 5;
@@ -926,11 +937,16 @@ sub add_rss_download {
                 $return .= `$config{remote_loc} -n $config{remote_user}:$config{remote_pass} -w "$download_path"`;
                 $return .= `$config{remote_loc} -n $config{remote_user}:$config{remote_pass} -a "$torrent_location"`;
 	
-                # Get the hash from the bittorrent file for insertion into DB
-                my $bt = BitTorrent->new();
-                my $hashref = $bt->getTrackerInfo($torrent_location);
-                my $hash = $hashref->{'hash'};
-                
+		if ($torrent_path =~ m/^magnet:.*urn:btih:(\w*)&dn/i) {
+			#Get the hash from the magnet link
+			$hash = $1;
+ 		} else {	
+			# Get the hash from the bittorrent file for insertion into DB
+			my $bt = BitTorrent->new();
+			my $hashref = $bt->getTrackerInfo($torrent_location);	
+			$hash = $hashref->{'hash'};
+		}
+
 		if ($return !~ m/invalid/i && $return !~ m/fail/i) {
 			$query = $dbh->prepare("INSERT INTO running_torrents values ('$torrent_location','$download_path','$hash')") || die "DBI::errstr";
                		$query->execute();
@@ -1021,11 +1037,18 @@ sub add_torrent {
 
 	 my $ds = get_datasource();
         my $dbh = DBI->connect($ds) || die "DBI::errstr";
-	
-	# Get the hash from the bittorrent file for insertion into DB
-	my $bt = BitTorrent->new();
-	my $hashref = $bt->getTrackerInfo($torrent_path);	
-	my $hash = $hashref->{'hash'};
+
+	my $hash;
+
+	if ($torrent_path =~ m/^magnet:.*urn:btih:(\w*)&dn/i) {
+		#Get the hash from the magnet link
+		$hash = $1;
+ 	} else {	
+		# Get the hash from the bittorrent file for insertion into DB
+		my $bt = BitTorrent->new();
+		my $hashref = $bt->getTrackerInfo($torrent_path);	
+		$hash = $hashref->{'hash'};
+	}
 
 	my %return;
 	
@@ -1058,9 +1081,13 @@ sub add_torrent {
 			$lock_count++;
 			sleep 5;
 
-                	if ($lock_count >= 20) {
+                	if ($lock_count >= 30) {
                         	#Maybe email here?
-                     		die "AUTO lock count exceeded\n";
+				#die "AUTO lock count exceeded\n";
+				$return{info} .= "operation lock stuck, overriding and stopping stuck processes\n";
+				op_lock_remove();
+				`pkill perl`;
+  				$lock_check = op_lock_check();
                 	}
 		}
 
@@ -1980,6 +2007,7 @@ sub cli_start_queue_torrents {
 	
 	my $torrent_path = "";
 	my $download_path = "";	
+	my $hash = "";
 
 	my $query = "";
 	my $query2 = "";
@@ -2002,10 +2030,15 @@ sub cli_start_queue_torrents {
 	while ($query->fetch()) {
                 $torrent_path =~ s/^\s//;
 
-		# Get the hash from the bittorrent file for insertion into DB
-		my $bt = BitTorrent->new();
-		my $hashref = $bt->getTrackerInfo($torrent_path);
-		my $hash = $hashref->{'hash'};
+		if ($torrent_path =~ m/^magnet:.*urn:btih:(\w*)&dn/i) {
+			#Get the hash from the magnet link
+			$hash = $1;
+	 	} else {	
+			# Get the hash from the bittorrent file for insertion into DB
+			my $bt = BitTorrent->new();
+			my $hashref = $bt->getTrackerInfo($torrent_path);	
+			$hash = $hashref->{'hash'};
+		}
 
                 $return .= `$config{remote_loc} -n $config{remote_user}:$config{remote_pass} -w "$download_path" -a "$torrent_path"`;
                 $query2 = $dbh->prepare("INSERT INTO running_torrents values ('$torrent_path','$download_path','$hash')");
@@ -2201,7 +2234,7 @@ sub cli_movierss {
 
 		if ($rss_skip == 0) {
 			# process the RSS listing
-			$return .= process_movierss($rss,$verbose);
+			$return .= process_movie_rss($rss,$verbose);
 			$return .= "Done!\n" unless $verbose == 0;
 		} else {
 			$return .= "Skipping $rss_link\n";
@@ -2228,9 +2261,13 @@ sub cli_delete_old_torrents {
     		$lock_count++;
    		sleep 5;
 	
-    		if ($lock_count >= 20) {
+    		if ($lock_count >= 60) {
 			#Maybe email here?
-			die "AUTO lock count exceeded\n";
+			#die "AUTO lock count exceeded\n";
+			$content .= "operation lock stuck, overriding and stopping stuck processes\n";
+			op_lock_remove();
+			`pkill perl`;
+  			$lock_check = op_lock_check();
     		}
   	}
 		

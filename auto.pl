@@ -5,7 +5,8 @@ use warnings;
 use CGI;
 require "/var/www/html/auto/auto.pm";
 require "/var/www/html/auto/auto_json.pm";
-require "/var/www/html/auto/myep_rss.pm";
+require "/var/www/html/auto/tvrage_rss.pm";
+#require "/var/www/html/auto/myep_rss.pm";
 #require "./auto.pm";
 
 $ENV{PATH} = "/bin:/usr/bin";
@@ -265,8 +266,12 @@ Firstly, what type of torrent are we downloading?
 $content .= qq^</select>
 </p>
 <p>
-Select the torrent you want to download 
+Select the torrents you want to download 
 <input type="hidden" name="MAX_FILE_SIZE" value="500000" /> <input name="file" type="file" multiple="" />
+</p>
+<p>
+Or put the magnet link you want to download
+<input type="text" size="40" maxlength="320" name="magnet" /> e.g. <strong>magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF...</strong>
 </p>
 
 </fieldset>
@@ -280,7 +285,7 @@ When did you want me to start the torrent?
 <legend>Advanced Sorting only</legend>
 <p>
 what is the show's name?
-<input type="text" size="20" maxlength="40" name="name" /> e.g. <strong>How i met your mother</strong>
+<input type="text" size="20" maxlength="40" name="name" /> e.g. <strong>How I Met Your Mother</strong>
 </p>
 
 <p>
@@ -304,8 +309,12 @@ What season is it?
 	}
 $content .= qq^</p>
 <p>
-Select the torrent you want to download 
+Select the torrents you want to download 
 <input type="hidden" name="MAX_FILE_SIZE" value="500000" /> <input name="file" type="file" multiple="" />
+</p>
+<p>
+Or put the magnet link you want to download
+<input type="text" size="40" maxlength="320" name="magnet" /> e.g. <strong>magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF...</strong>
 </p>
 <p>
 When did you want to start the torrent?
@@ -330,6 +339,7 @@ sub gen_add_submit () {
 	my $show_name = $cgi->param("name");
 	my $season_no = $cgi->param("season");
 	my @torrents = $cgi->param("file");
+	my $magnet = $cgi->param("magnet");
 	my $timing = $cgi->param("timing");
 	
 	my @upload_filehandles = $cgi->upload("file");
@@ -359,8 +369,14 @@ sub gen_add_submit () {
        	        #Capitalise first letter of every word
                 $show_name =~ s/(?<=\w)(.)/\l$1/g;
 
+		# Strip leading and following spaces;
+                $show_name =~ s/^\s*//g;
+                $show_name =~ s/\s*$//g;
+
                 #Swap whitespace for underscores
                 $show_name =~ s/\s/\_/g;
+
+
 
 		directory_check($main_directory."/".$show_name);
 	}
@@ -374,52 +390,65 @@ sub gen_add_submit () {
 	my $counter = 0;
 
 	$content = "<p>";
-
-	foreach my $torrent_name (@torrents) {
-		#my $torrent_name = $torrents[$counter];
-		my $upload_filehandle = $upload_filehandles[$counter];
 	
-		$torrent_name = clean_data($torrent_name);
-		$counter++;
+	if ($torrents[0] eq "") {
+		#No torrent name given, check magnets
+		if ($magnet =~ m/^magnet\:/) {
+			#magnet link found
+			my %add_torrent_return = add_torrent($download_path,$magnet,$timing);	
+			$content .= $add_torrent_return{info};
 
-		# Remove source (client) directory in file name (IE leaves it attached)
-		$torrent_name =~ s/.*\\//g;
-
-		# Remove ' marks, curly and square brackets - Can break torrent adding at times
-		$torrent_name =~ s/\'//g;
-		$torrent_name =~ s/\[//g;
-		$torrent_name =~ s/\]//g;
-		$torrent_name =~ s/\{//g;
-		$torrent_name =~ s/\}//g;
-
-		my $torrent_dir = $config{torrent_loc};
-
-		open ( UPLOADFILE, ">$torrent_dir/$torrent_name" ) or die "$!";
-		binmode UPLOADFILE;
-
-		while ( <$upload_filehandle> )
-		{
-			print UPLOADFILE;
-		}
-
-		close UPLOADFILE;
-
-		my %torrent_path_return = generate_torrent_path($torrent_name);
-
-		if (!$torrent_path_return{error}) {
-			$torrent_path = $torrent_path_return{torrent_path};	
 		} else {
-			$content = $torrent_path_return{error};
-			return $content;
+			#No valid magnet or torrent found
+			$content .= "No valid magnet or torrent found";
 		}
-
-		$content .= "Torrent $torrent_name: \n";
+	} else {
+		foreach my $torrent_name (@torrents) {
+			#my $torrent_name = $torrents[$counter];
+			my $upload_filehandle = $upload_filehandles[$counter];
 		
-		my %add_torrent_return = add_torrent($download_path,$torrent_path,$timing);	
-		$content .= $add_torrent_return{info};
-
+			$torrent_name = clean_data($torrent_name);
+			$counter++;
+	
+			# Remove source (client) directory in file name (IE leaves it attached)
+			$torrent_name =~ s/.*\\//g;
+	
+			# Remove ' marks, curly and square brackets - Can break torrent adding at times
+			$torrent_name =~ s/\'//g;
+			$torrent_name =~ s/\[//g;
+			$torrent_name =~ s/\]//g;
+			$torrent_name =~ s/\{//g;
+			$torrent_name =~ s/\}//g;
+	
+			my $torrent_dir = $config{torrent_loc};
+	
+			open ( UPLOADFILE, ">$torrent_dir/$torrent_name" ) or die "$!";
+			binmode UPLOADFILE;
+	
+			while ( <$upload_filehandle> )
+			{
+				print UPLOADFILE;
+			}
+	
+			close UPLOADFILE;
+	
+			my %torrent_path_return = generate_torrent_path($torrent_name);
+	
+			if (!$torrent_path_return{error}) {
+				$torrent_path = $torrent_path_return{torrent_path};	
+			} else {
+				$content = $torrent_path_return{error};
+				return $content;
+			}
+	
+			$content .= "Torrent $torrent_name: \n";
+			
+			my %add_torrent_return = add_torrent($download_path,$torrent_path,$timing);	
+			$content .= $add_torrent_return{info};
+	
+		}
 	}
-
+	
 	$content .= "</p>";
 
 	my $filter = "download";	
@@ -1092,6 +1121,7 @@ sub gen_remove_submit () {
 	my %config = load_config();
 	
 	$confirm = "no" unless defined($confirm);
+	$filter_text = "" unless defined($filter_text);
 
 	#Remove an error star if present in ID field
 	$id =~ s/\*//g;
