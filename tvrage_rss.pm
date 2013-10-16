@@ -42,6 +42,13 @@ sub retrieve_my_eps_today {
       				$show = $1;
       				$seasonEp = $2;
       				$epName = $item->{'description'};
+
+				# Remove HTML encoded apostrophes
+				$show =~ s/\&\#39\;//g;
+				
+				# Remove regular apostrophes
+				$show =~ s/\'//g;
+
 				for my $db_rss_show_name ( keys %shows ) {
 					$show =~ s/\'/\-quote\-/g;
 					$epName =~ s/\'/\-quote\-/g;
@@ -123,18 +130,18 @@ sub load_my_eps_today {
 
 		
 			# Swap out whitespace for underscores (or else the special character regex below removes them)
-			$show =~ s/\s/_/g;
+			#$show =~ s/\s/_/g;
 			
 			# Swap out special characters in name for nothing
-			$show =~ s/\W//g;
+			#$show =~ s/\W//g;
 	
 			# Swap out underscores for whitespace again
-			$show =~ s/_/ /g;
+			#$show =~ s/_/ /g;
 
 			my $search_value = $show;
 			
 			# Swap out dots in name for whitespace (to be swapped out later for underscores)
-			$show =~ s/\./ /g;
+			#$show =~ s/\./ /g;
 			
 			# Swap out regex start and end characters for the name
 			$show =~ s/^\^//g;
@@ -166,12 +173,14 @@ sub load_my_eps_today {
       			my $rssShowInfo = $orig_show . "</td><td><center>" . $season . "</center></td><td><center>" . $episode . "</center></td><td>" . $epName;
       			$rssInfoList .= $rssShowInfo;
 
+			#$rssInfoList .= "checking if $download_path $search_value, Season $season, Episode $episode is downloaded<br />";
 	                my $file_check = file_check($download_path,$search_value,$season,$episode);
 	                my $dl_check = 0;
 
       	       		if ($file_check == 1) {
                	       		$hadDL = "Y";
                		} else {
+				#$rssInfoList .= "checking if $show, Season $season, Episode $episode is downloading<br />";
                        		$dl_check = downloading_check($show,$season,$episode,$proper);
                        		if ($dl_check == 1) {
                	       			$hadDL = "Y";
