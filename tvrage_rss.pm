@@ -38,10 +38,34 @@ sub retrieve_my_eps_today {
     		$rss->parse($content);
 		$working .= "Checking rss feeds for shows out today\n";
 		foreach my $item (@{$rss->{'items'}}){
-      			if ($item->{'title'} =~ /^\-\s(.*)\s\((\d\dx\d\d)\)$/i){
+      			if ($item->{'title'} =~ /^\-\s(.*)\s\((\d\dx\d\d)\)$/i) {
       				$show = $1;
       				$seasonEp = $2;
       				$epName = $item->{'description'};
+
+				# Remove HTML encoded apostrophes
+				$show =~ s/\&\#39\;//g;
+				
+				# Remove regular apostrophes
+				$show =~ s/\'//g;
+
+				for my $db_rss_show_name ( keys %shows ) {
+					$show =~ s/\'/\-quote\-/g;
+					$epName =~ s/\'/\-quote\-/g;
+					if ($show =~ /$db_rss_show_name/i) {
+						$working .= "Episode of " . $show . " out today, adding to DB\n";
+						$query = $dbh->prepare("INSERT INTO my_eps_today values ('$show','$seasonEp','$epName')") || die "DBI::errstr";
+      						$query->execute();
+					}
+				}
+			} elsif ($item->{'title'} =~ /^\-\s(.*)\s\(S(\d\d-Special)\)$/i) {
+      				$show = $1;
+      				$seasonEp = $2;
+      				$epName = $item->{'description'};
+
+				print "show is $show, season and ep is $seasonEp\n";
+
+				$seasonEp =~ s/-Special/x00/i;
 
 				# Remove HTML encoded apostrophes
 				$show =~ s/\&\#39\;//g;
