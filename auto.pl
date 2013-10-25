@@ -605,7 +605,7 @@ sub gen_operate_content ($$$) {
 				next;
 			}
 		} elsif ($filter eq "active") {
-			if ($rateDownload == 0 && $rateUpload == 0) {
+			if ($peersGettingFromUs == 0 && $peersSendingToUs == 0) {
 				next;
 			}
 		} elsif ($filter eq "other") {
