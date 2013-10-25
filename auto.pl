@@ -498,11 +498,12 @@ sub gen_operate_content ($$$) {
 		download => 'Downloading',	
 		seed => 'Seeding',	
 		pause => 'Paused',	
+		error => 'Errored',
 		other => 'Other'
 	);
 
 	#Dodgy hack to force a sorted hash
-	my @filters_short = ("all","active","download","seed","pause","other");
+	my @filters_short = ("all","active","download","seed","pause","error","other");
 	
 	if ($alert ne "NOTHING") {
 		$content .= qq!<div id="alertbar">\n!;	
@@ -610,6 +611,10 @@ sub gen_operate_content ($$$) {
 			}
 		} elsif ($filter eq "other") {
 			if ($status != 2) {
+				next;
+			}
+		} elsif ($filter eq "error") {
+			if ($error == 0) {
 				next;
 			}
 		} elsif ($filter eq "seed") {
