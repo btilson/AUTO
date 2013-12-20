@@ -489,6 +489,7 @@ sub gen_operate_content ($$$) {
 	my $torrent_count = 0;
 	my $total_requested = 0;
 	my $total_downloaded = 0;
+	my $total_uploaded = 0;
 	my $ids;
 	my $ratio = 0;
 
@@ -651,6 +652,7 @@ sub gen_operate_content ($$$) {
 		my $converted_uploadedEver = convert_data($uploadedEver);
 
 		$total_downloaded = $total_downloaded + $downloaded;
+		$total_uploaded = $total_uploaded + $uploadedEver;
 		$total_requested = $total_requested + $sizeWhenDone;
  
 		$total_left = sprintf("%.1f", $total_left);
@@ -783,7 +785,13 @@ sub gen_operate_content ($$$) {
 		return $content;
 	}
 
-        my $total = $total_downloaded / $total_requested * 100;
+	my $total = 0;
+
+	if ($total_requested == 0) {
+		$total = "0";
+	} else {
+        	$total = $total_downloaded / $total_requested * 100;
+	}
 	my $ratio_avg = $ratio / $torrent_count;
 
 	$ratio_avg = sprintf("%.2f", $ratio_avg);
@@ -795,6 +803,7 @@ sub gen_operate_content ($$$) {
 	my $converted_down_total = convert_data($down_total);
 	my $converted_up_total = convert_data($up_total);
 
+	my $converted_total_uploaded = convert_data($total_uploaded);
 	my $converted_total_downloaded = convert_data($total_downloaded);
 	my $converted_total_requested = convert_data($total_requested);
 
@@ -834,8 +843,8 @@ sub gen_operate_content ($$$) {
                 $content .= qq!<table class="bottomcontent"><tr>\n!;
 
                 $content .= qq!<td style="width:25%">Downloaded: $converted_total_downloaded of $converted_total_requested</td>\n!;
-		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_down.jpg" title="Downloaded: " />$converted_down_total</td>\n!;
-		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_up.jpg" title="Uploaded: " />$converted_up_total</td>\n!;
+		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_down.jpg" title="Downloaded: $converted_total_downloaded" />$converted_down_total</td>\n!;
+		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_up.jpg" title="Uploaded: $converted_total_uploaded" />$converted_up_total</td>\n!;
                 $content .= qq!<td style="width:43%">&nbsp;</td>\n!;
                 $content .= qq!<td style="width:18%" align="right">Avg Ratio: $ratio_avg</td>\n!;
                 $content .= "</tr></table></div>\n";
