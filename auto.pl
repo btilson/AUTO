@@ -5,9 +5,17 @@ use warnings;
 use CGI;
 require "/var/www/html/auto/auto.pm";
 require "/var/www/html/auto/auto_json.pm";
-require "/var/www/html/auto/tvrage_rss.pm";
-#require "/var/www/html/auto/myep_rss.pm";
 #require "./auto.pm";
+
+my %config = load_config();
+
+#If RSS needs myep, use that
+if ($config{my_eps_rss} =~ m!http://www.myepisodes.com!) {
+	require "/var/www/html/auto/myep_rss.pm";
+# else use tvrage 
+} else {
+	require "/var/www/html/auto/tvrage_rss.pm";
+}
 
 $ENV{PATH} = "/bin:/usr/bin";
 
