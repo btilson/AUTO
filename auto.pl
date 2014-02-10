@@ -5,17 +5,8 @@ use warnings;
 use CGI;
 require "/var/www/html/auto/auto.pm";
 require "/var/www/html/auto/auto_json.pm";
+require "/var/www/html/auto/myep_rss.pm";
 #require "./auto.pm";
-
-my %config = load_config();
-
-#If RSS needs myep, use that
-if ($config{my_eps_rss} =~ m!http://www.myepisodes.com!) {
-	require "/var/www/html/auto/myep_rss.pm";
-# else use tvrage 
-} else {
-	require "/var/www/html/auto/tvrage_rss.pm";
-}
 
 $ENV{PATH} = "/bin:/usr/bin";
 
@@ -497,7 +488,6 @@ sub gen_operate_content ($$$) {
 	my $torrent_count = 0;
 	my $total_requested = 0;
 	my $total_downloaded = 0;
-	my $total_uploaded = 0;
 	my $ids;
 	my $ratio = 0;
 
@@ -507,12 +497,11 @@ sub gen_operate_content ($$$) {
 		download => 'Downloading',	
 		seed => 'Seeding',	
 		pause => 'Paused',	
-		error => 'Errored',
 		other => 'Other'
 	);
 
 	#Dodgy hack to force a sorted hash
-	my @filters_short = ("all","active","download","seed","pause","error","other");
+	my @filters_short = ("all","active","download","seed","pause","other");
 	
 	if ($alert ne "NOTHING") {
 		$content .= qq!<div id="alertbar">\n!;	
@@ -622,10 +611,6 @@ sub gen_operate_content ($$$) {
 			if ($status != 2) {
 				next;
 			}
-		} elsif ($filter eq "error") {
-			if ($error == 0) {
-				next;
-			}
 		} elsif ($filter eq "seed") {
 			if ($status != 8 && $status != 6) {
 				next;
@@ -660,7 +645,6 @@ sub gen_operate_content ($$$) {
 		my $converted_uploadedEver = convert_data($uploadedEver);
 
 		$total_downloaded = $total_downloaded + $downloaded;
-		$total_uploaded = $total_uploaded + $uploadedEver;
 		$total_requested = $total_requested + $sizeWhenDone;
  
 		$total_left = sprintf("%.1f", $total_left);
@@ -793,13 +777,7 @@ sub gen_operate_content ($$$) {
 		return $content;
 	}
 
-	my $total = 0;
-
-	if ($total_requested == 0) {
-		$total = "0";
-	} else {
-        	$total = $total_downloaded / $total_requested * 100;
-	}
+        my $total = $total_downloaded / $total_requested * 100;
 	my $ratio_avg = $ratio / $torrent_count;
 
 	$ratio_avg = sprintf("%.2f", $ratio_avg);
@@ -811,7 +789,6 @@ sub gen_operate_content ($$$) {
 	my $converted_down_total = convert_data($down_total);
 	my $converted_up_total = convert_data($up_total);
 
-	my $converted_total_uploaded = convert_data($total_uploaded);
 	my $converted_total_downloaded = convert_data($total_downloaded);
 	my $converted_total_requested = convert_data($total_requested);
 
@@ -851,8 +828,8 @@ sub gen_operate_content ($$$) {
                 $content .= qq!<table class="bottomcontent"><tr>\n!;
 
                 $content .= qq!<td style="width:25%">Downloaded: $converted_total_downloaded of $converted_total_requested</td>\n!;
-		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_down.jpg" title="Downloaded: $converted_total_downloaded" />$converted_down_total</td>\n!;
-		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_up.jpg" title="Uploaded: $converted_total_uploaded" />$converted_up_total</td>\n!;
+		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_down.jpg" title="Downloaded: " />$converted_down_total</td>\n!;
+		$content .= qq!<td style="width:7%"><img height="14px" src="images/arrow_up.jpg" title="Uploaded: " />$converted_up_total</td>\n!;
                 $content .= qq!<td style="width:43%">&nbsp;</td>\n!;
                 $content .= qq!<td style="width:18%" align="right">Avg Ratio: $ratio_avg</td>\n!;
                 $content .= "</tr></table></div>\n";
@@ -1344,7 +1321,7 @@ sub gen_mcontrol () {
 	my $content = "";
 	my %config = load_config();
 	my %movies = load_rss_movies();
-	
+	my $entry_ref=1;
 	#$content = "RSS movies found in DB<br />\n";
 
 	$content .= qq!<div id="alertbar">\n!;
@@ -1363,23 +1340,45 @@ sub gen_mcontrol () {
 	$content .= "<td><h3>Inclusion Values</h3></td>\n";
 	$content .= "<td><h3>Exclusion Values</h3></td>\n</tr>\n";
 	for my $key ( keys %movies ) {
-        	my $value = $movies{$key};
+        my $value = $movies{$key};
 		my @inc_exc_values = split(/&/,$value);
 		my $include = $inc_exc_values[0];
 		my $exclude = $inc_exc_values[1];
 		my $imdb_code = $inc_exc_values[2];
+		my $dvd_release_date = $inc_exc_values[3];
+		my $theater_release_date = $inc_exc_values[4];
 	
 		$include = "" unless defined($include);
 		$exclude = "" unless defined($exclude);
 		$imdb_code = "" unless defined($imdb_code);
-        
+		$dvd_release_date = "" unless defined($dvd_release_date);
+		$theater_release_date = "" unless defined($theater_release_date);
+		
 		$content .= qq!<tr>\n!;	
 		$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=mcontrol_remove_submit&movie=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
-		if ($imdb_code eq "tt") {
-			$content .= qq!<td>$key</td>\n!;
+		if ($imdb_code eq "NA") {
+			if ( $dvd_release_date eq 'NA' && $theater_release_date eq 'NA' ) {
+				$content .= qq!<td>$key</td>\n!;
+			} else {
+				$content .= qq!<td><div onClick="openClose($entry_ref)" style="cursor:hand; cursor:pointer"><b>$key</b></div>
+				<div id="$entry_ref" class="texter">Expected Release Dates<br />
+				Theater: $theater_release_date<br />
+				Retail: $dvd_release_date<br /><br />
+				</div></td>\n!;
+			}
+			$entry_ref++;
 		}
 		else {
-			$content .= qq!<td><a href=$config{imdb_link}$imdb_code>$key</a></td>\n!;
+			if ( $dvd_release_date eq 'NA' && $theater_release_date eq 'NA' ) {
+				$content .= qq!<td><a href=$config{imdb_link}$imdb_code>$key</a></td>\n!;
+			} else {
+			$content .= qq!<td><div onClick="openClose($entry_ref)" style="cursor:hand; cursor:pointer"><b>$key</b></div>
+			<div id="$entry_ref" class="texter"><a href=$config{imdb_link}$imdb_code>IMDB Info</a><br />Expected Release Dates<br />
+			Theater: $theater_release_date<br />
+			Retail: $dvd_release_date<br /><br />
+			</div></td>\n!;
+			}
+			$entry_ref++;
 		}
 		$content .= qq!<td>$include</td>\n!;
 		$content .= qq!<td>$exclude</td>\n!;
@@ -1540,7 +1539,7 @@ sub gen_category_remove_submit () {
 	
 sub gen_options () {
 	
-	my @options_short = ("daemon_loc","remote_loc","remote_user","remote_pass","torrent_loc","email_addr","rss_loc","movie_rss_loc","my_eps_rss","rss_down_loc","rss_state","rss_sorting","rss_ratio","rss_time","transmission_port","global_ratio","remove_data","last_active","seed_time","on_peak_start","on_peak_up_speed_kb","on_peak_down_speed_kb","off_peak_start","off_peak_up_speed_kb","off_peak_down_speed_kb");
+	my @options_short = ("daemon_loc","remote_loc","remote_user","remote_pass","torrent_loc","email_addr","rss_loc","movie_rss_loc","rss_down_loc","rss_state","rss_sorting","rss_ratio","rss_time","transmission_port","global_ratio","remove_data","last_active","seed_time","on_peak_start","on_peak_up_speed_kb","on_peak_down_speed_kb","off_peak_start","off_peak_up_speed_kb","off_peak_down_speed_kb");
 	
 	my %options = (
 		daemon_loc => 'Daemon Location',
@@ -1551,7 +1550,6 @@ sub gen_options () {
 		email_addr => 'Email Addresses',
 		rss_loc => 'RSS Source Location',
 		movie_rss_loc => 'Movie RSS Location',
-		my_eps_rss => 'Myepisodes.com RSS Location',
 		rss_down_loc => 'RSS Download Location',
 		rss_state => 'RSS Automatic Downloads',
 		rss_sorting => 'RSS Folder Sorting',
@@ -1591,25 +1589,25 @@ sub gen_options () {
 			$content .= "</fieldset>\n<p> </p><fieldset>\n<legend>RSS Options</legend>\n";
 			$content .= "<table>\n";
 		}
-		if ($count == 14) {
+		if ($count == 13) {
 			$content .= "</table>\n";
 			$content .= "</fieldset>\n<p> </p><fieldset>\n<legend>Transmission Options</legend>\n";
 			$content .= "<table>\n";
 		}
-		if ($count == 19) {
+		if ($count == 18) {
 			$content .= "</table>\n";
 			$content .= "</fieldset>\n<p> </p><fieldset>\n<legend>On-Peak Options</legend>\n";
 			$content .= "<table>\n";
 		}
-		if ($count == 22) {
+		if ($count == 21) {
 			$content .= "</table>\n";
 			$content .= "</fieldset>\n<p> </p><fieldset>\n<legend>Off-Peak Options</legend>\n";
 			$content .= "<table>\n";
 		}
 		
 		#Check if its the binary locations, if so increase field size
-		if ($options{$key} =~ m/Email/ || $options{$key} =~ m/RSS Source/ || $options{$key} =~ m/Movie RSS/ || $options{$key} =~ m/Myepisodes.com RSS/) {
-			$content .= qq!<tr><td width="250">$options{$key}</td><td><input type="text" size="80" name="$key" value="$value" /></td></tr>\n!;
+		if ($options{$key} =~ m/Email/ || $options{$key} =~ m/RSS Source/ || $options{$key} =~ m/Movie RSS/ || $options{$key} =~ m/Tvrage RSS/ || $options{$key} =~ m/API Key/) {
+			$content .= qq!<tr><td width="250">$options{$key}</td><td><input type="text" size="50" name="$key" value="$value" /></td></tr>\n!;
 		} elsif ($options{$key} =~ m/Location/) {
 			$content .= qq!<tr><td width="250">$options{$key}</td><td><input type="text" size="35" name="$key" value="$value" /></td></tr>\n!;
 		} elsif ($options{$key} =~ m/Username/) {
@@ -1658,7 +1656,7 @@ sub gen_options () {
 			$content .= qq!<tr><td width="250">$options{$key}</td><td><input type="text" size="5" name="$key" value="$value" /></td></tr>\n!;
 		}
 		$count ++;
-		if ($count == 25) {
+		if ($count == 24) {
 			$content .= "</table>\n";
 		}
 		
@@ -1699,7 +1697,6 @@ sub gen_options_submit () {
 		my $torrent_loc = $cgi->param("torrent_loc");
 		my $rss_loc = $cgi->param("rss_loc");
 		my $movie_rss_loc = $cgi->param("movie_rss_loc");
-		my $my_eps_rss = $cgi->param("my_eps_rss");
 		my $email_addr = $cgi->param("email_addr");
 		my $remove_data = $cgi->param("remove_data");
 		my $last_active = $cgi->param("last_active");
@@ -1711,7 +1708,7 @@ sub gen_options_submit () {
 		my $rss_down_loc = $cgi->param("rss_down_loc");
 		my $transmission_port = $cgi->param("transmission_port");
 
-		my %db_options_return = db_set_options($off_peak_start,$off_peak_up,$off_peak_down,$on_peak_start,$on_peak_up,$on_peak_down,$daemon_loc,$remote_loc,$remote_user,$remote_pass,$torrent_loc,$rss_loc,$movie_rss_loc,$my_eps_rss,$email_addr,$rss_state,$rss_sorting,$rss_ratio,$rss_time,$rss_down_loc,$transmission_port,$remove_data,$last_active,$seed_time);	
+		my %db_options_return = db_set_options($off_peak_start,$off_peak_up,$off_peak_down,$on_peak_start,$on_peak_up,$on_peak_down,$daemon_loc,$remote_loc,$remote_user,$remote_pass,$torrent_loc,$rss_loc,$movie_rss_loc,$email_addr,$rss_state,$rss_sorting,$rss_ratio,$rss_time,$rss_down_loc,$transmission_port,$remove_data,$last_active,$seed_time);	
 		$db_options_return{info} .= apply_crontab($off_peak_start,$on_peak_start);	
 		$content = $db_options_return{info};
 	}
@@ -1799,6 +1796,8 @@ sub cli_functions ($) {
 		$content = cli_movierss($verbose);
 	} elsif ($ARGV[1] eq "del_old_torrents") {				
 		$content = cli_delete_old_torrents();
+	} elsif ($ARGV[1] eq "update_movierss_dates") {				
+		$content = cli_update_movierss_dates();
 	} elsif ($ARGV[1] eq "sync_trans_auto") {				
 		$content = sync_trans_auto();
 	} elsif ($ARGV[1] eq "clean_up") {				

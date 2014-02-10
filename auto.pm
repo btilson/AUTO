@@ -40,11 +40,13 @@ PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 <link rel="icon" type="image/x-icon" href="images/favicon.ico" />
 <script type="text/javascript" src="js/OnloadScheduler.js"></script>
 <script type="text/javascript" src="js/CollapsibleLists.js"></script>
+<script type="text/javascript" src="js/CollapsibleText.js"></script>
 <script type="text/javascript">
 
 OnloadScheduler.schedule(function(){ CollapsibleLists.apply(); });
 
-</script>^;
+</script>
+^;
 
 my $header_middle = qq^</head>
 
@@ -346,16 +348,18 @@ sub load_rss_movies {
 	my $include;
 	my $exclude;
 	my $imdb_code;
+	my $dvd_release_date;
+	my $theater_release_date;	
 
-        my $ds = get_datasource();
-        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+    my $ds = get_datasource();
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
 
-	my $query = $dbh->prepare("select movie,include,exclude,imdb_code from rss_movies") || die "DBI::errstr";
+	my $query = $dbh->prepare("select movie,include,exclude,imdb_code,dvd_release_date,theater_release_date from rss_movies") || die "DBI::errstr";
 	$query->execute;
-	$query->bind_columns(\$name,\$include,\$exclude,\$imdb_code);
+	$query->bind_columns(\$name,\$include,\$exclude,\$imdb_code,\$dvd_release_date,\$theater_release_date);
 
 	while ($query->fetch) {
-		$rss_movies{"$name"}=$include."&".$exclude."&".$imdb_code;
+		$rss_movies{"$name"}=$include."&".$exclude."&".$imdb_code."&".$dvd_release_date."&".$theater_release_date;
 	}
 	return %rss_movies;
 }
@@ -1200,6 +1204,7 @@ sub db_set_options {
         my $rss_loc = shift;
 				my $movie_rss_loc = shift;
 				my $my_eps_rss  = shift;
+				my $rt_api_key  = shift;
 				my $email_addr = shift;
         my $rss_state = shift;
 				my $rss_sorting = shift;
@@ -1226,6 +1231,7 @@ sub db_set_options {
        	$rss_loc =~ s/^\s+//;
 				$movie_rss_loc =~ s/^\s+//;
 				$my_eps_rss  =~ s/^\s+//;
+				$rt_api_key  =~ s/^\s+//;
 				$email_addr =~ s/^\s+//;
        	$rss_state =~ s/^\s+//;
 				$rss_sorting =~ s/^\s+//;
@@ -1253,6 +1259,7 @@ sub db_set_options {
 				$movie_rss_loc =~ s/\s+$//;
 				$email_addr =~ s/\s+$//;
 				$my_eps_rss  =~ s/\s+$//;
+				$rt_api_key  =~ s/\s+$//;
        	$rss_state =~ s/\s+$//;
 				$rss_sorting =~ s/\s+$//;
 				$rss_ratio =~ s/\s+$//;
@@ -1307,6 +1314,9 @@ sub db_set_options {
         $query->execute();
 				
 				$query = $dbh->prepare("update config SET value = '$my_eps_rss' where name = 'my_eps_rss'") || die "DBI::errstr";
+        $query->execute();
+		
+		$query = $dbh->prepare("update config SET value = '$rt_api_key' where name = 'rt_api_key'") || die "DBI::errstr";
         $query->execute();
 				
 				$query = $dbh->prepare("update config SET value = '$email_addr' where name = 'email_addr'") || die "DBI::errstr";
@@ -1433,41 +1443,81 @@ sub db_delete_rss_entry {
 sub db_add_rss_movie {
 	use DBI;
 	use IMDB::Film;
+	use WWW::RottenTomatoes;
+	use JSON;
 
 	my $movie = shift;
 	my $inclusions = shift;
 	my $exclusions = shift;
 	my $year;
+	my $dvd_release_date;
+	my $theater_release_date;
+	my $imdb_code;
+	
+    my $ds = get_datasource();
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+	my %config = load_config();
 
-        my $ds = get_datasource();
-        my $dbh = DBI->connect($ds) || die "DBI::errstr";
-
+	my $rt_api_key = $config{rt_api_key};
 	my %return;
 
 	#Remove all whitespace at the start of text
-       	$movie =~ s/^\s+//;
-       	$inclusions =~ s/^\s+//;
-       	$exclusions =~ s/^\s+//;
+    $movie =~ s/^\s+//;
+    $inclusions =~ s/^\s+//;
+    $exclusions =~ s/^\s+//;
 	
 	#Remove all whitespace at the end of text
-       	$movie =~ s/\s+$//;
-       	$inclusions =~ s/\s+$//;
-       	$exclusions =~ s/\s+$//;
+    $movie =~ s/\s+$//;
+    $inclusions =~ s/\s+$//;
+    $exclusions =~ s/\s+$//;
        	
 	#set all letters to lower case	
 	$movie =~ tr/[a-z]/[A-Z]/;
 
-  #Capitalise first letter of every word
-  $movie =~ s/(?<=\w)(.)/\l$1/g;
+	#Capitalise first letter of every word
+	$movie =~ s/(?<=\w)(.)/\l$1/g;
 	
 	if ($inclusions =~ m/^(\d{4}),.*$/){
 		$year = $1;
 	}
 	my $film = new IMDB::Film(crit => $movie, year => $year);
-	my $imdb_code = "tt" . $film->code;
+	if ( defined($film->code) ) {
+		$imdb_code = "tt" . $film->code;
+	} else {
+		$imdb_code = 'NA';
+	}
 	
+	if ( defined($rt_api_key) && $rt_api_key ne '' ) {
+		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
+		my $query_response = $api->movies_search( query => $movie );
+		my $decoded_json = decode_json($query_response);
+		for my $i (0..5){	
+			my $test_year = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+			if ( defined($test_year) ) {
+				if ($test_year =~ m/^(\d{4})-.*$/){
+					$test_year = $1;
+				}
+				if ($test_year == $year) {
+					$dvd_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"dvd"};
+					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
+						$dvd_release_date = 'TBA';
+					}
+					$theater_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
+						$theater_release_date = 'TBA';
+					}
+					last;
+				}
+			}	
+			$i++;
+		}
+	} else {
+		$dvd_release_date = 'NA';
+		$theater_release_date = 'NA';
+	}
+
 	# Prepare string as an insert 
-	my $query_string = "INSERT INTO rss_movies values ('$movie','$exclusions','$inclusions','$imdb_code')";
+	my $query_string = "INSERT INTO rss_movies values ('$movie','$exclusions','$inclusions','$imdb_code','$dvd_release_date','$theater_release_date')";
        	
 	# Pull any movie that matches the current one
 	my $query = $dbh->prepare("Select movie from rss_movies where movie = '$movie'") || die "DBI::errstr";
@@ -1481,7 +1531,7 @@ sub db_add_rss_movie {
 	while ($query->fetch) {
 		if ($movie eq $pulled_movie) {
 			# If a match is found, make an update instead of an insert
-			$query_string = "update rss_movies set imdb_code = '$imdb_code',include = '$inclusions',exclude = '$exclusions' where movie = '$movie'";
+			$query_string = "update rss_movies set theater_release_date = '$theater_release_date', dvd_release_date = '$dvd_release_date', imdb_code = '$imdb_code',include = '$inclusions',exclude = '$exclusions' where movie = '$movie'";
 		}
 	}
 
@@ -1504,7 +1554,7 @@ sub db_delete_rss_movie_entry {
 
         my $ds = get_datasource();
         my $dbh = DBI->connect($ds) || die "DBI::errstr";
-
+		
        	my $query = $dbh->prepare("DELETE FROM rss_movies WHERE movie = '$movie'") || die "DBI::errstr";
         $query->execute();
 	
@@ -1820,7 +1870,7 @@ sub apply_crontab {
 	}
 	
 	foreach my $line (@raw_crontab) {
-		if ($line !~ m/auto.* cli off_peak/ && $line !~ m/auto.* cli on_peak/ && $line !~ m/auto.* cli rss/ && $line !~ m/auto.* cli movierss/ && $line !~ m/auto.* cli del_old_torrent/ && $line !~ m/auto.* cli clean_up/ && $line !~ m/auto.* cli my_eps/ && $line !~ m/\#AUTO system/) {
+		if ($line !~ m/auto.* cli off_peak/ && $line !~ m/auto.* cli on_peak/ && $line !~ m/auto.* cli rss/ && $line !~ m/auto.* cli movierss/ && $line !~ m/auto.* cli del_old_torrent/ && $line !~ m/auto.* cli clean_up/ && $line !~ m/auto.* cli my_eps/ && $line !~ m/auto.* cli update_movierss_dates/ && $line !~ m/\#AUTO system/) {
 			push(@new_crontab,$line);
 		}
 	} 
@@ -1840,6 +1890,8 @@ sub apply_crontab {
 	push(@new_crontab,"30 23 * * * $auto_location cli clean_up\n");
 	
 	push(@new_crontab,"1 00 * * * $auto_location cli my_eps\n");
+	
+	push(@new_crontab,"00 02 1,15 * * /usr/local/bin/auto cli update_movierss_dates\n");
 
 	open ( CRONTABFILE, ">/tmp/auto_crontab_rebuild" ) or die "$!";
 
@@ -2328,6 +2380,78 @@ sub cli_delete_old_torrents {
 	op_lock_remove();
 
 	return $content;				
+}
+
+sub cli_update_movierss_dates {
+
+	use DBI;
+    use WWW::RottenTomatoes;
+    use JSON;
+		
+	my $movie;
+	my $inclusions;
+    my $year;
+	my $test_year;
+    my $dvd_release_date;
+    my $theater_release_date;
+	my @sql_updates;
+		
+	my $ds = get_datasource();
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+	my %config = load_config();
+
+    my $rt_api_key = $config{rt_api_key};
+    my $content;
+	if ( defined($rt_api_key) || $rt_api_key ne '' ) {
+			
+		# Pull all movies
+		my $query = $dbh->prepare("Select movie, include from rss_movies") || die "DBI::errstr";
+		$query->execute();
+		
+		$query->bind_columns(\$movie,\$inclusions);
+		
+		# Run the query and check for a match for movie names (double check)
+		while ($query->fetch) {
+		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
+		my $query_response = $api->movies_search( query => $movie, page => 1, page_limit => 5 );
+		if ($inclusions =~ m/^(\d{4}),.*$/){
+			$year = $1;
+		}
+		my $decoded_json = decode_json($query_response);
+		for my $i (0..5){
+			$test_year = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+			if ( defined($test_year) ) {
+				if ($test_year =~ m/^(\d{4})-.*$/){
+					$test_year = $1;
+				}
+				if ($test_year == $year) {
+					$dvd_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"dvd"};
+					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
+						$dvd_release_date = 'TBA';
+					}
+					$theater_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
+										$theater_release_date = 'TBA';
+					}
+					last;
+				}
+			}
+			$i++;
+		}
+		my $query_string = "update rss_movies set theater_release_date = '$theater_release_date', dvd_release_date = '$dvd_release_date' where movie = '$movie'";
+		$content .= "RSS movie " . $movie . " has been updated, Theater Release Date: " . $theater_release_date . "  DVD Release Date: " . $dvd_release_date . "\n";
+		push (@sql_updates, $query_string);
+					
+		}
+		
+		foreach (@sql_updates) {
+			$query = $dbh->prepare($_) || die "DBI::errstr";
+			$query->execute();
+		}
+	} else {
+		$content .= "No Rotten Tomatoes API key set in config, release dates update aborted\n";
+	}
+	return $content;
 }
 
 sub sync_trans_auto {

@@ -26,8 +26,7 @@ sub retrieve_my_eps_today {
 	
 	my $rootDir = $config{rss_down_loc};
   # todays myepisodes rss
-	#my $rssUrl = $config{my_eps_rss};
-	my $rssUrl = "http://www.myepisodes.com/rss.php?feed=all&uid=auto_user&pwdmd5=d73a4d380561ec4b316f4532b70d90a2";
+	my $rssUrl = $config{my_eps_rss};
   
 	my $rss = new XML::RSS;
   $content = get($rssUrl);
