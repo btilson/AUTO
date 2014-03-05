@@ -563,7 +563,7 @@ sub process_rss {
         
 		foreach my $item (@{$rss->{'items'}}) {
        	         	next unless defined($item->{'title'}) && defined($item->{'link'});
-       	         	next unless ($item->{'title'} =~ m/$search_value/i);
+       	         	next unless ($item->{'title'} =~ m/^$search_value/i);
 			
 			my $exclude = 0;
 
