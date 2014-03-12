@@ -1246,7 +1246,7 @@ sub gen_rcontrol () {
 	$content .= "<td><h3>Show</h3></td>\n";
 	$content .= "<td><h3>Inclusion Values</h3></td>\n";
 	$content .= "<td><h3>Exclusion Values</h3></td>\n</tr>\n";
-	for my $key ( keys %shows ) {
+	foreach my $key ( sort { $a cmp $b } keys %shows ) {
         	my $value = $shows{$key};
 		my @inc_exc_values = split(/&/,$value);
 		my $include = $inc_exc_values[0];
@@ -1354,7 +1354,7 @@ sub gen_mcontrol () {
 	$content .= "<td><h3>Movie</h3></td>\n";
 	$content .= "<td><h3>Inclusion Values</h3></td>\n";
 	$content .= "<td><h3>Exclusion Values</h3></td>\n</tr>\n";
-	for my $key ( keys %movies ) {
+	foreach my $key (sort { $a cmp $b } keys %movies ) {
         my $value = $movies{$key};
 		my @inc_exc_values = split(/&/,$value);
 		my $include = $inc_exc_values[0];
