@@ -1354,7 +1354,7 @@ sub gen_mcontrol () {
 	$content .= "<td><h3>Movie</h3></td>\n";
 	$content .= "<td><h3>Inclusion Values</h3></td>\n";
 	$content .= "<td><h3>Exclusion Values</h3></td>\n</tr>\n";
-	foreach my $key (sort { $a cmp $b } keys %movies ) {
+	foreach my $key ( sort { $a cmp $b } keys %movies ) {
         my $value = $movies{$key};
 		my @inc_exc_values = split(/&/,$value);
 		my $include = $inc_exc_values[0];
@@ -1485,7 +1485,7 @@ sub gen_category () {
 	
 	$content .= "<table>\n";
 	$content .= "<tr>\n<td>&nbsp;</td><td><h3>Category</h3></td>\n<td><h3>Directory Location</h3></td><td width=\"300\">Advanced Sorting</td>\n</tr>\n";
-	for my $key ( keys %categories ) {
+	foreach my $key ( sort { $a cmp $b } keys %categories ) {
         	my $value = $categories{$key};
        		my @value = split(/,/,$value); 
 		$content .= qq!<tr>\n!;
