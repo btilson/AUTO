@@ -1225,23 +1225,21 @@ sub db_set_options {
        	$on_peak_down =~ s/^\s+//;
        	$daemon_loc =~ s/^\s+//;
        	$remote_loc =~ s/^\s+//;
-				$remote_user =~ s/^\s+//;
-				$remote_pass =~ s/^\s+//;
+	$remote_user =~ s/^\s+//;
+	$remote_pass =~ s/^\s+//;
        	$torrent_loc =~ s/^\s+//;
        	$rss_loc =~ s/^\s+//;
-				$movie_rss_loc =~ s/^\s+//;
-				$my_eps_rss  =~ s/^\s+//;
-				$rt_api_key  =~ s/^\s+//;
-				$email_addr =~ s/^\s+//;
+	$movie_rss_loc =~ s/^\s+//;
+	$email_addr =~ s/^\s+//;
        	$rss_state =~ s/^\s+//;
-				$rss_sorting =~ s/^\s+//;
-				$rss_ratio =~ s/^\s+//;
-				$rss_time =~ s/^\s+//;
+	$rss_sorting =~ s/^\s+//;
+	$rss_ratio =~ s/^\s+//;
+	$rss_time =~ s/^\s+//;
        	$rss_down_loc =~ s/^\s+//;
        	$transmission_port =~ s/^\s+//;
-				$remove_data =~ s/^\s+//;
-				$last_active =~ s/^\s+//;
-				$seed_time =~ s/^\s+//;
+	$remove_data =~ s/^\s+//;
+	$last_active =~ s/^\s+//;
+	$seed_time =~ s/^\s+//;
 	
 	#Remove all whitespace at the end of text
        	$off_peak_start =~ s/\s+$//;
@@ -1252,23 +1250,21 @@ sub db_set_options {
        	$on_peak_down =~ s/\s+$//;
        	$daemon_loc =~ s/\s+$//;
        	$remote_loc =~ s/\s+$//;
-				$remote_user =~ s/\s+$//;
-				$remote_pass =~ s/\s+$//;
+	$remote_user =~ s/\s+$//;
+	$remote_pass =~ s/\s+$//;
        	$torrent_loc =~ s/\s+$//;
        	$rss_loc =~ s/\s+$//;
-				$movie_rss_loc =~ s/\s+$//;
-				$email_addr =~ s/\s+$//;
-				$my_eps_rss  =~ s/\s+$//;
-				$rt_api_key  =~ s/\s+$//;
+	$movie_rss_loc =~ s/\s+$//;
+	$email_addr =~ s/\s+$//;
        	$rss_state =~ s/\s+$//;
-				$rss_sorting =~ s/\s+$//;
-				$rss_ratio =~ s/\s+$//;
-				$rss_time =~ s/\s+$//;
+	$rss_sorting =~ s/\s+$//;
+	$rss_ratio =~ s/\s+$//;
+	$rss_time =~ s/\s+$//;
        	$rss_down_loc =~ s/\s+$//;
        	$transmission_port =~ s/\s+$//;
-				$remove_data =~ s/\s+$//;
-				$last_active =~ s/\s+$//;
-				$seed_time =~ s/\s+$//;
+	$remove_data =~ s/\s+$//;
+	$last_active =~ s/\s+$//;
+	$seed_time =~ s/\s+$//;
 
 
         my $ds = get_datasource();
@@ -1310,16 +1306,10 @@ sub db_set_options {
        	$query = $dbh->prepare("update config SET value = '$rss_loc' where name = 'rss_loc'") || die "DBI::errstr";
         $query->execute();
 				
-				$query = $dbh->prepare("update config SET value = '$movie_rss_loc' where name = 'movie_rss_loc'") || die "DBI::errstr";
+	$query = $dbh->prepare("update config SET value = '$movie_rss_loc' where name = 'movie_rss_loc'") || die "DBI::errstr";
         $query->execute();
 				
-				$query = $dbh->prepare("update config SET value = '$my_eps_rss' where name = 'my_eps_rss'") || die "DBI::errstr";
-        $query->execute();
-		
-		$query = $dbh->prepare("update config SET value = '$rt_api_key' where name = 'rt_api_key'") || die "DBI::errstr";
-        $query->execute();
-				
-				$query = $dbh->prepare("update config SET value = '$email_addr' where name = 'email_addr'") || die "DBI::errstr";
+	$query = $dbh->prepare("update config SET value = '$email_addr' where name = 'email_addr'") || die "DBI::errstr";
         $query->execute();
        	
 	$query = $dbh->prepare("update config SET value = '$rss_state' where name = 'rss_state'") || die "DBI::errstr";
