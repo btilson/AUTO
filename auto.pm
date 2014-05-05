@@ -194,7 +194,7 @@ sub parse_torrent_files {
 
 	#die "first file name is ".$torrents[0]->{"files"}->[0]->{"name"}."\n";	
 
-	$content = "<h3>Torrent ID $id</h3>\n";
+	#$content = "<h3>Torrent ID $id</h3>\n";
 	
 	my @torrent_files = @{$torrents[0]->{"files"}};	
 
@@ -224,6 +224,7 @@ sub parse_torrent_files {
      	$seen{$value} = 1;
     }
   }
+	$content .= qq!<div class="list" id="list">\n<li>\n!;
 	$content .= qq!<ul class="collapsibleList">\n<li>\n!;
 	$content .= qq!<strong>$torrent_name</strong>\n<ul>\n!;
 	
@@ -262,6 +263,7 @@ sub parse_torrent_files {
 	$content .= qq!</ul>\n!;
 	
 	$content .= qq!</ul>\n!;
+	$content .= qq!</div>\n!;
 	return $content;
 }
 
@@ -793,9 +795,9 @@ sub add_rss_download {
 	#$show_name = $search_value;
 	$show_name = $rss_show_name;
 		
-	#print "Show name is |$show_name|\n";
-        #print "Season is |$season_no|\n";
-        #print "Episode is |$episode|\n";
+	print "Show name is |$show_name|\n";
+        print "Season is |$season_no|\n";
+        print "Episode is |$episode|\n";
         
 	# Swap out dots in name for whitespace (to be swapped out later for underscores)
 	# Commented out - Should not be needed any more with show names coming from RSS directly
@@ -1197,24 +1199,22 @@ sub db_set_options {
         my $on_peak_up = shift;
         my $on_peak_down = shift;
         my $daemon_loc = shift;
-        my $remote_loc = shift;
-				my $remote_user = shift;
-				my $remote_pass = shift;
+	my $remote_loc = shift;
+	my $remote_user = shift;
+	my $remote_pass = shift;
         my $torrent_loc = shift;
         my $rss_loc = shift;
-				my $movie_rss_loc = shift;
-				my $my_eps_rss  = shift;
-				my $rt_api_key  = shift;
-				my $email_addr = shift;
+	my $movie_rss_loc = shift;
+	my $email_addr = shift;
         my $rss_state = shift;
-				my $rss_sorting = shift;
-				my $rss_ratio = shift;
-				my $rss_time = shift;
+	my $rss_sorting = shift;
+	my $rss_ratio = shift;
+	my $rss_time = shift;
         my $rss_down_loc = shift;
         my $transmission_port = shift;
-				my $remove_data = shift;
-				my $last_active = shift;
-				my $seed_time = shift;
+	my $remove_data = shift;
+	my $last_active = shift;
+	my $seed_time = shift;
 
 	#Remove all whitespace at the start of text
        	$off_peak_start =~ s/^\s+//;

@@ -152,6 +152,7 @@ sub generate_page ($\%\@) {
 	#print "The page sent was ".$page . "<br />\n";
 	
 	print $content;
+
 	print $footer;
 	print $endhtml;
 }
@@ -686,8 +687,10 @@ sub gen_operate_content ($$$) {
 		} else {
 			$content .= qq!<a class="contentbar" href="/auto/auto.pl?page=pause_submit&amp;id=$id&amp;pause=true&amp;filter=$filter">Pause</a> | !;
 		}
-		$content .= qq!<a class="contentbar" href="/auto/auto.pl?page=modify_submit&amp;id=$id">Edit</a> | !;
-		$content .= qq!<a class="contentbar" href="/auto/auto.pl?page=remove_submit&amp;id=$id&amp;filter=$filter">Remove</a></td>\n!;
+		#$content .= qq!<a class="contentbar" href="/auto/auto.pl?page=modify_submit&amp;id=$id">Edit</a> | !;
+		$content .= qq!<a class="contentbar" onclick="createOverlay('page=modify_submit&amp;headers=no&amp;id=$id')";>Edit</a> | !;
+		#$content .= qq!<a class="contentbar" href="/auto/auto.pl?page=remove_submit&amp;id=$id&amp;filter=$filter">Remove</a></td>\n!;
+		$content .= qq!<a class="contentbar" onclick="createOverlay('page=remove_submit&amp;headers=no&amp;id=$id&amp;filter=$filter')";>Remove</a></td>\n!;
 		$content .= "</tr></table></div>\n";
                 
 		
@@ -979,6 +982,69 @@ $content .= qq!"&dummy=" + new Date().getTime();
 }
 //-----------------------------------------------------------
 
+function createOverlay(pageToLoad) {
+
+   var ajaxRequest = getAjaxVar();
+
+   var container = document.getElementById("container");
+   var pageHeight = Math.max((container.clientHeight + 100), window.innerHeight || 0);
+
+   var overlay = document.createElement("div");
+   overlay.setAttribute("id","overlay");
+   overlay.setAttribute("class", "overlay");
+   overlay.onclick = restore;
+   overlay.setAttribute("style","height:" + pageHeight + "px");
+   overlay.style.height = pageHeight;
+   document.body.appendChild(overlay);
+
+   var overlayHTML = document.createElement("div");
+   overlayHTML.setAttribute("id","overlayHTML");
+   overlayHTML.setAttribute("class", "overlayHTML");
+   overlayHTML.innerHTML = "please wait while the data loads";
+
+   document.body.appendChild(overlayHTML);
+   var url = "auto.pl";
+
+   ajaxRequest.onreadystatechange = function() {
+
+    if(ajaxRequest.readyState == 4 && ajaxRequest.status == 200) {
+
+      //alert(ajaxRequest.responseText);
+
+	var outputText = ajaxRequest.responseText;
+
+	var overlayHTML = document.getElementById("overlayHTML");
+	overlayHTML.innerHTML = outputText;
+
+	CollapsibleLists.apply(); 
+
+	if (pageToLoad.indexOf("modify") >= 0) {
+		var list = document.getElementById("list");
+		var listHeight = overlayHTML.clientHeight - 225;
+   		list.setAttribute("style","height:" + listHeight + "px");
+   		overlay.style.height = listHeight;
+	}
+    }
+
+  }
+
+  ajaxRequest.open("GET", url + "?" + pageToLoad, true);
+
+  ajaxRequest.send(null);
+  
+
+}
+//----------------------------------------------------------
+
+function restore() {
+
+ document.body.removeChild(document.getElementById("overlay"));
+ document.body.removeChild(document.getElementById("overlayHTML"));
+}
+
+ 
+//-----------------------------------------------------------
+
 function filter_text(filterText) {
   var ajaxRequest = getAjaxVar();
   var url = "auto.pl";
@@ -1154,7 +1220,7 @@ sub gen_remove_submit () {
 	$total_torrents = @ids;
 
 	if ($confirm ne "yes") {
-		$content = qq!<div id="alertbar">!;
+		#$content = qq!<div id="alertbar">!;
 		$content .= "<h1>Delete confirmation</h1>\n";
 		$content .= "<h2>You are about to remove:</h2>\n";
 
@@ -1174,7 +1240,7 @@ sub gen_remove_submit () {
 		$content .= qq!<p><a href="/auto/auto.pl?page=remove_submit&id=$id&confirm=yes&filter=$filter&filter_text=$filter_text"><em>Click here to confirm this deletion</em></a></p>\n!;
 		$content .= "<h3>OR</h3>\n";
 		$content .= qq!<p><a href="/auto/auto.pl?page=operate"><em>Return to Operate page</em></a></p>\n!;
-		$content .= "</div>\n";
+		#$content .= "</div>\n";
 		
 		return $content;
 	}
