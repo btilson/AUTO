@@ -795,9 +795,9 @@ sub add_rss_download {
 	#$show_name = $search_value;
 	$show_name = $rss_show_name;
 		
-	print "Show name is |$show_name|\n";
-        print "Season is |$season_no|\n";
-        print "Episode is |$episode|\n";
+	#print "Show name is |$show_name|\n";
+        #print "Season is |$season_no|\n";
+        #print "Episode is |$episode|\n";
         
 	# Swap out dots in name for whitespace (to be swapped out later for underscores)
 	# Commented out - Should not be needed any more with show names coming from RSS directly
