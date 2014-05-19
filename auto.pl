@@ -874,7 +874,7 @@ sub gen_operate ($) {
         my $filter_text = $cgi->param("filter_text");
 
         $alert = "NOTHING" unless defined($alert);
-        $filter = "all" unless defined($filter);
+        $filter = "active" unless defined($filter);
         $filter_text = "" unless defined($filter_text);
 	
 	$filter = clean_data($filter);
