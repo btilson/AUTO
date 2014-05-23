@@ -260,10 +260,10 @@ sub gen_add () {
 <p><strong>Before I can start, I need to ask a few questions</strong></p>
 
 <form action="$ENV{SCRIPT_NAME}" method="post" enctype="multipart/form-data">
-<input type="hidden" name="page" value ="add_submit" />
 <fieldset>
 <legend>Location Information</legend>
 <p>
+<input type="hidden" name="page" value ="add_submit" />
 Firstly, what type of torrent are we downloading?
 <select name="type">^;
 
@@ -285,7 +285,7 @@ Or put the magnet link you want to download
 </fieldset>
 <p>
 When did you want me to start the torrent?
-<input type="radio" name="timing" value="now" checked />Start Immediately
+<input type="radio" name="timing" value="now" checked="checked" />Start Immediately
 <input type="radio" name="timing" value="on" />On-Peak Download
 <input type="radio" name="timing" value="off" />Off-Peak Download
 </p>
@@ -462,7 +462,11 @@ sub gen_add_submit () {
 
 	my $filter = "download";	
 	
-	$content = gen_operate_content($content,$filter,"");
+	if ($timing eq "now") {	
+		$content = gen_operate_content($content,$filter,"");
+	} else {
+		$content = gen_add();
+	}
 
 	return $content;
 }
@@ -1313,9 +1317,9 @@ sub gen_rcontrol () {
   	$content .= qq!</div>\n!;
 	}
 
-	$content .= qq!<form action="$ENV{SCRIPT_NAME}" method="post">\n!;
 	$content .= qq!<input type="hidden" name="page" value ="rcontrol_add_submit" />!;
 	$content .= qq!<div id="rss">!;
+	$content .= qq!<form action="$ENV{SCRIPT_NAME}" method="post">\n!;
 	$content .= "<table rules=\"rows\">";
 	$content .= "<tr>\n<td>&nbsp;</td>\n";
 	$content .= "<td><h3>Show</h3></td>\n";
@@ -1331,7 +1335,7 @@ sub gen_rcontrol () {
 		$exclude = "" unless defined($exclude);
         
 		$content .= qq!<tr>\n!;	
-		$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=rcontrol_remove_submit&show=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
+		$content .= qq!<td width="10%"><input type="button" name="Remove" value="Remove" onclick="location.href = '/auto/auto.pl?page=rcontrol_remove_submit&amp;show=$key'" /></td>\n!;
 		$content .= qq!<td>$key</td>\n!;
 		$content .= qq!<td>$include</td>\n!;
 		$content .= qq!<td>$exclude</td>\n!;
@@ -1650,7 +1654,7 @@ sub gen_queue_list () {
 					my $value = $on_peak_queue{$key};
 					my @value = split(/,/,$value); 
 				$content .= qq!<tr>\n!;
-				$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=queue_remove_submit&on_peak_queue_torrent=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
+				$content .= qq!<td width="10%"><input type="button" name="Remove" value="Remove" onclick="location.href='/auto/auto.pl?page=queue_remove_submit&on_peak_queue_torrent=$key'" /></td>\n!;
 				if ($key =~ m/\/.*\/(\w.*)\.torrent$/ig) {
 					$content .= qq!<td>$1</td>\n!;
 				}
@@ -1665,7 +1669,7 @@ sub gen_queue_list () {
 					my $value = $off_peak_queue{$key};
 					my @value = split(/,/,$value); 
 				$content .= qq!<tr>\n!;
-				$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=queue_remove_submit&off_peak_queue_torrent=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
+				$content .= qq!<td width="10%"><input type="button" name="Remove" value="Remove" onclick="location.href='/auto/auto.pl?page=queue_remove_submit&off_peak_queue_torrent=$key'" /></td>\n!;
 				if ($key =~ m/\/.*\/(\w.*)\.torrent$/ig) {
 					$content .= qq!<td>$1</td>\n!;
 				}

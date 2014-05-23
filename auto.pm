@@ -48,9 +48,19 @@ OnloadScheduler.schedule(function(){ CollapsibleLists.apply(); });
 </script>
 ^;
 
-my $header_middle = qq^</head>
+my $header_middle;
 
-<body onload=refresh_timer()>
+if ($page =~ m/operate/) {
+	$header_middle = qq^</head>
+
+<body onload=refresh_timer()>^;
+} else {
+	$header_middle = qq^</head>
+
+<body>^;
+}
+
+$header_middle .= qq^
 <!--Header-->
 <div id="header">
 $logo
