@@ -1708,9 +1708,9 @@ sub gen_queue_remove_submit () {
 			return $content;
 		}
 		#Run the remove and delete code here 
-		$content = "Deleting from Database<br />\n";
+		$content = qq^<div id="alertbar">Deleted from Database:<br />\n^;
 		$content .= db_delete_on_peak_queue($on_peak_queue_torrent);
-		$content .= "<br />\n";
+		$content .= "</div>\n";
 		$content .= gen_add();
 	}
 	elsif ($off_peak_queue_torrent) {
@@ -1724,9 +1724,9 @@ sub gen_queue_remove_submit () {
 				return $content;
 		}
 		#Run the remove and delete code here 
-		$content = "Deleting from Database<br />\n";
+		$content = qq^<div id="alertbar">Deleted from Database:<br />\n^;
 		$content .= db_delete_off_peak_queue($off_peak_queue_torrent);
-		$content .= "<br />\n";
+		$content .= "</div>\n";
 		$content .= gen_add();
 	}
 }

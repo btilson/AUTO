@@ -81,7 +81,11 @@ $logo
 		foreach my $reload_page (@redirect_pages) {
 			if ($page eq $reload_page) {
 				if ($page eq "add_submit") {
-					$filter = "download"
+					if ($cgi->param("timing") eq "now") {
+						$filter = "download";
+					} else {
+						next;
+					}
 				}
 				$header .= qq!<meta http-equiv="refresh" content="10;url=/auto/auto.pl?page=operate&filter=$filter" />\n!;
 			}
