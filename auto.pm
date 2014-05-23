@@ -415,6 +415,46 @@ sub load_categories {
 	return %categories;
 }
 
+sub load_on_peak_queue {
+	use DBI;
+
+	my %on_peak_queue;
+	my $torrent_location;
+	my $download_location;
+
+        my $ds = get_datasource();
+        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+        my $query = $dbh->prepare("select * from on_peak_queue") || die "DBI::errstr";
+	$query->execute;
+	$query->bind_columns(\$torrent_location,\$download_location);
+
+	while ($query->fetch) {
+		$on_peak_queue{"$torrent_location"}=$download_location;
+	}
+	return %on_peak_queue;
+}
+
+sub load_off_peak_queue {
+	use DBI;
+
+	my %off_peak_queue;
+	my $torrent_location;
+	my $download_location;
+
+        my $ds = get_datasource();
+        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+        my $query = $dbh->prepare("select * from off_peak_queue") || die "DBI::errstr";
+	$query->execute;
+	$query->bind_columns(\$torrent_location,\$download_location);
+
+	while ($query->fetch) {
+		$off_peak_queue{"$torrent_location"}=$download_location;
+	}
+	return %off_peak_queue;
+}
+
 sub get_datasource {
 	my $db_location = "/var/www/html/auto/auto.db";
 	my $ds = "DBI:SQLite:dbname=$db_location";
@@ -1601,6 +1641,44 @@ sub db_delete_category {
         $query->execute();
 	
 	return "Deleted $category from Categories database";
+}
+
+sub db_delete_on_peak_queue {
+	use DBI;
+	
+	my $on_peak_queue_torrent = shift;
+	my $torrent_name;
+	
+	if ($on_peak_queue_torrent =~ m/\/.*\/(\w.*)\.torrent$/ig) {
+		$torrent_name = $1;
+	}
+
+        my $ds = get_datasource();
+        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+       	my $query = $dbh->prepare("DELETE FROM on_peak_queue WHERE torrent_location = '$on_peak_queue_torrent'") || die "DBI::errstr";
+        $query->execute();
+	
+	return "Deleted $torrent_name from the On Peak Queue";
+}
+
+sub db_delete_off_peak_queue {
+	use DBI;
+	
+	my $off_peak_queue_torrent = shift;
+	my $torrent_name;
+	
+	if ($off_peak_queue_torrent =~ m/\/.*\/(\w.*)\.torrent$/ig) {
+		$torrent_name = $1;
+	}
+
+        my $ds = get_datasource();
+        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+       	my $query = $dbh->prepare("DELETE FROM off_peak_queue WHERE torrent_location = '$off_peak_queue_torrent'") || die "DBI::errstr";
+        $query->execute();
+	
+	return "Deleted $torrent_name from the Off Peak Queue";
 }
 
 sub db_manual_edit {

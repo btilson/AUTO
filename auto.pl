@@ -120,6 +120,10 @@ sub generate_page ($\%\@) {
 		$content = gen_category_add_submit();
 	} elsif ($page eq "category_remove_submit") {
 		$content = gen_category_remove_submit();
+	} elsif ($page eq "queue_list") {
+		$content = gen_queue_list();
+	} elsif ($page eq "queue_remove_submit") {
+		$content = gen_queue_remove_submit();
 	} elsif ($page eq "options") {
 		$content = gen_options();
 	} elsif ($page eq "options_submit") {
@@ -189,7 +193,7 @@ sub generate_no_headers_page ($\%\@) {
                 $content = gen_rcontrol_add_submit();
         } elsif ($page eq "rcontrol_remove_submit") {
                 $content = gen_rcontrol_remove_submit();
-	} elsif ($page eq "mcontrol") {
+		} elsif ($page eq "mcontrol") {
                 $content = gen_mcontrol();
         } elsif ($page eq "mcontrol_add_submit") {
                 $content = gen_mcontrol_add_submit();
@@ -201,6 +205,10 @@ sub generate_no_headers_page ($\%\@) {
                 $content = gen_category_add_submit();
         } elsif ($page eq "category_remove_submit") {
                 $content = gen_category_remove_submit();
+		} elsif ($page eq "queue_list") {
+                $content = gen_queue_list();
+		} elsif ($page eq "queue_remove_submit") {
+                $content = gen_queue_remove_submit();
         } elsif ($page eq "options") {
                 $content = gen_options();
         } elsif ($page eq "options_submit") {
@@ -328,7 +336,8 @@ When did you want to start the torrent?
 <p><input type="submit" value="Start the Torrent!" /></p>
 </form>\n^;
 }
-
+#$content .= qq!<a class="contentbar" onclick="createOverlay('page=queue_list')";>View Queued Torrents List</a>!;
+$content .= gen_queue_list();
 return $content;
 }
 
@@ -1616,6 +1625,106 @@ sub gen_category_remove_submit () {
 	$content = "Deleting from Database<br />\n";
         $content .= db_delete_category($category);
 	$content .= "<br />\n";
+}
+
+sub gen_queue_list () {
+	my $content = "";
+
+	my %on_peak_queue = load_on_peak_queue();
+	my %off_peak_queue = load_off_peak_queue();
+	
+	my %config = load_config();
+	my $on_peak_start = $config{on_peak_start};
+	my $off_peak_start = $config{off_peak_start};
+	
+	$content .= qq!<div id="add">!;
+	$content .= qq!<form action="$ENV{SCRIPT_NAME}" method="post">\n!;
+	$content .= qq!<input type="hidden" name="page" value ="queue_add_submit" />!;
+	if ((%on_peak_queue) || (%off_peak_queue)) {
+		$content .= "<fieldset>\n<legend>Queued Torrent List</legend>\n";
+		$content .= "<table>\n";
+		
+		if (%on_peak_queue) {
+			$content .= "<tr>\n<td>&nbsp;</td><td><strong>On Peak Torrent (scheduled for $on_peak_start hours)</strong></td>\n<td><strong>Download Location</strong></td></tr>\n";
+			foreach my $key ( sort { $a cmp $b } keys %on_peak_queue ) {
+					my $value = $on_peak_queue{$key};
+					my @value = split(/,/,$value); 
+				$content .= qq!<tr>\n!;
+				$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=queue_remove_submit&on_peak_queue_torrent=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
+				if ($key =~ m/\/.*\/(\w.*)\.torrent$/ig) {
+					$content .= qq!<td>$1</td>\n!;
+				}
+				$content .= qq!<td>$value[0]</td>\n!;
+				$content .= qq!</tr>\n!;
+			}
+			$content .= qq!<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>\n!;
+		}
+		if (%off_peak_queue) {
+			$content .= "<tr>\n<td>&nbsp;</td><td><strong>Off Peak Torrent (scheduled for $off_peak_start hours)</strong></td>\n<td><strong>Download Location</strong></td></tr>\n";
+			foreach my $key ( sort { $a cmp $b } keys %off_peak_queue ) {
+					my $value = $off_peak_queue{$key};
+					my @value = split(/,/,$value); 
+				$content .= qq!<tr>\n!;
+				$content .= qq!<td width="10%"><a href="/auto/auto.pl?page=queue_remove_submit&off_peak_queue_torrent=$key"><input type="button" name="Remove" value="Remove"></a></td>\n!;
+				if ($key =~ m/\/.*\/(\w.*)\.torrent$/ig) {
+					$content .= qq!<td>$1</td>\n!;
+				}
+				$content .= qq!<td>$value[0]</td>\n!;
+				$content .= qq!</tr>\n!;
+			}
+		}
+		$content .= "</table>\n";
+		$content .= "</fieldset>\n";
+	}
+	$content .= "</form>\n";
+	$content .= "</div>\n";
+	
+	return $content;
+}
+
+sub gen_queue_remove_submit () {
+	my $cgi = get_cgi();
+	
+	my $on_peak_queue_torrent = $cgi->param("on_peak_queue_torrent");
+	my $off_peak_queue_torrent = $cgi->param("off_peak_queue_torrent");
+	my $confirm = $cgi->param("confirm");
+
+	$confirm = "no" unless defined($confirm);
+	
+	my $content = "";	
+	
+	if ($on_peak_queue_torrent) {
+		if ($confirm ne "yes") {
+			$content = "<h2>Delete confirmation</h2>\n";
+			$content .= "<h3>You are about to remove:</h3>\n";
+			$content .= "<h3>$on_peak_queue_torrent</h3>\n";
+			$content .= "<h3>From the <strong>Database</strong></h3>\n";
+			$content .= "<h3>Are you sure you wish to do this?</h3>\n";
+			$content .= qq!<p><a href="/auto/auto.pl?page=queue_remove_submit&on_peak_queue_torrent=$on_peak_queue_torrent&confirm=yes"><em>Click here to confirm this deletion</em></a></p>\n!;
+			return $content;
+		}
+		#Run the remove and delete code here 
+		$content = "Deleting from Database<br />\n";
+		$content .= db_delete_on_peak_queue($on_peak_queue_torrent);
+		$content .= "<br />\n";
+		$content .= gen_add();
+	}
+	elsif ($off_peak_queue_torrent) {
+		if ($confirm ne "yes") {
+				$content = "<h2>Delete confirmation</h2>\n";
+				$content .= "<h3>You are about to remove:</h3>\n";
+				$content .= "<h3>$off_peak_queue_torrent</h3>\n";
+				$content .= "<h3>From the <strong>Database</strong></h3>\n";
+				$content .= "<h3>Are you sure you wish to do this?</h3>\n";
+				$content .= qq!<p><a href="/auto/auto.pl?page=queue_remove_submit&off_peak_queue_torrent=$off_peak_queue_torrent&confirm=yes"><em>Click here to confirm this deletion</em></a></p>\n!;
+				return $content;
+		}
+		#Run the remove and delete code here 
+		$content = "Deleting from Database<br />\n";
+		$content .= db_delete_off_peak_queue($off_peak_queue_torrent);
+		$content .= "<br />\n";
+		$content .= gen_add();
+	}
 }
 	
 sub gen_options () {

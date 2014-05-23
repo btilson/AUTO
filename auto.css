@@ -8,7 +8,7 @@ body	{
 	top:0px;
 	height:60px;
 	width:100%;
-	background-color: #66ccff;
+	background-color:#ff0000;
 	position: absolute;
 }
 
@@ -406,6 +406,14 @@ a.db_list {
 	width: 50%;
 	text-align: left;
 	border: 3;
+	cellspacing: 1;
+	cellpadding: 1;
+}
+
+#add table{ 
+	width: 50%;
+	text-align: left;
+	border: 1;
 	cellspacing: 1;
 	cellpadding: 1;
 }
