@@ -1317,9 +1317,9 @@ sub gen_rcontrol () {
   	$content .= qq!</div>\n!;
 	}
 
-	$content .= qq!<input type="hidden" name="page" value ="rcontrol_add_submit" />!;
 	$content .= qq!<div id="rss">!;
 	$content .= qq!<form action="$ENV{SCRIPT_NAME}" method="post">\n!;
+	$content .= qq!<input type="hidden" name="page" value ="rcontrol_add_submit" />!;
 	$content .= "<table rules=\"rows\">";
 	$content .= "<tr>\n<td>&nbsp;</td>\n";
 	$content .= "<td><h3>Show</h3></td>\n";
