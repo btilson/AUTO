@@ -1999,7 +1999,7 @@ sub cli_functions ($) {
 	} elsif ($ARGV[1] eq "my_eps") {				
 		$content = retrieve_my_eps_today();
 	} elsif ($ARGV[1] eq "version") {				
-		$content = "AUTO v0.9.9\n";
+		$content = "AUTO v1.0\n";
 	} elsif ($ARGV[1] eq "test") {				
 		$content = cli_test();
 	} elsif ($ARGV[1] eq "name_check") {				
