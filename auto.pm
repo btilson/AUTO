@@ -319,11 +319,18 @@ sub get_db_entry {
 	$query->bind_columns(\$torrent,\$download,\$hash);
 	while ($query->fetch) {
 		if ($torrent =~ m/$config{torrent_loc}/g) {
-			$hashref = $bt->getTrackerInfo($torrent);
-			# Compare passed hash (from transmission list) to one from DB 
-			if ($tor_hash eq $hashref->{'hash'}) {
+			# Check if the torrent file is empty and prevent trying to load it into bittorrent.pm if it is
+			# BitTorrent.pm crashes badly if this happens
+			if (-z $torrent) {
 				$return{torrent} = $torrent;					
 				return(%return);
+			} else {
+				$hashref = $bt->getTrackerInfo($torrent);
+				# Compare passed hash (from transmission list) to one from DB 
+				if ($tor_hash eq $hashref->{'hash'}) {
+					$return{torrent} = $torrent;					
+					return(%return);
+				}
 			}
 		}
 		else {
@@ -870,8 +877,8 @@ sub add_rss_download {
                 return $return;
         }
 
-        if ($season_no eq "unkown" || $episode eq "unknown") {
-                $return = "Failed to get show $torrent_file season/episode correctly\n";
+        if ($season_no eq "unknown" || $episode eq "unknown") {
+                $return = "Failed to get show $torrent_file season/episode correctly\n" if $verbose == "1";
                 return $return;
         }
 
@@ -2561,7 +2568,6 @@ sub sync_trans_auto {
 		my %parsed_torrent_history;
 		my $running_hash = get_running_hash($id);
 		%torrent_file_return = get_db_entry($running_hash);
-		
 		foreach my $line (@torrent_history) {
 			if ($line =~ m/Name\:\s(.*)$/) {
 				$parsed_torrent_history{name} = $1;
