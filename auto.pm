@@ -70,9 +70,9 @@ $logo
 <div id="tabbar">^;
 
         my $header_end = qq!</div>
+<a name="top"></a>
 </div>
 
-<a name="top"></a>
 <div id="container">!;
 
         $header = $header_start."\n";
