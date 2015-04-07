@@ -1978,7 +1978,7 @@ sub apply_crontab {
 	
 	push(@new_crontab,"30 23 * * * $auto_location cli clean_up\n");
 	
-	push(@new_crontab,"1 00 * * * $auto_location cli my_eps\n");
+	push(@new_crontab,"00 04 * * * $auto_location cli my_eps\n");
 	
 	push(@new_crontab,"00 02 1,15 * * /usr/local/bin/auto cli update_movierss_dates\n");
 
