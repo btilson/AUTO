@@ -407,6 +407,27 @@ sub load_config {
 	return %config;
 }
 
+sub load_running_torrents {
+	use DBI;
+
+	my %running_torrents;
+	my $torrent_location;
+	my $download_location;
+	my $hash;
+
+    my $ds = get_datasource();
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+    my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
+	$query->execute;
+	$query->bind_columns(\$torrent_location,\$download_location,\$hash);
+
+	while ($query->fetch) {
+		$running_torrents{"$torrent_location"} = "$download_location,$hash";
+	}
+	return %running_torrents;
+}
+
 sub load_categories {
 	use DBI;
 
@@ -1417,6 +1438,20 @@ sub db_delete_running_entry {
         $query->execute();
 	
 	return "Deleted $torrent_path from database";
+}
+
+sub db_delete_running_entry_hash {
+        use DBI;
+
+        my $torrent_hash = shift;
+
+        my $ds = get_datasource();
+        my $dbh = DBI->connect($ds) || die "DBI::errstr";
+
+        my $query = $dbh->prepare("DELETE FROM running_torrents WHERE hash = '$torrent_hash'") || die "DBI::errstr";
+        $query->execute();
+
+        return "Deleted torrent with hash $torrent_hash from database\n";
 }
 
 sub db_add_rss_show {
@@ -2430,7 +2465,9 @@ sub cli_delete_old_torrents {
 		my $id = $torrent{"id"};
 		my $name = $torrent{"name"};
 		my $status = $torrent{"status"};
-		
+		my $running_hash = get_running_hash($id);	
+		chomp($running_hash);
+	
 		my $info_array = json_load_info($id);
 		my @info = @$info_array;
 		my $filter = "all";
@@ -2444,11 +2481,13 @@ sub cli_delete_old_torrents {
 			if ($info[0]->{"secondsSeeding"} > $seed_time && $info[0]->{"activityDate"} < $time && ($info[0]->{"status"} == 6 || $info[0]->{"status"} == 8)) {
 				if ($config{remove_data} eq "on") {
 					$content .= `$config{remote_loc} -n $config{remote_user}:$config{remote_pass} -t $id --remove-and-delete`;
+					$content .= db_delete_running_entry_hash($running_hash);
 					$content .= "Torrent ID: " . $id . "\n";
 					$content .= "Name: " . $name . " has been flagged for deletion\n\n";
 					push(@torrent_del_names, $name);
 				} elsif ($config{remove_data} eq "off") {
 					$content .= `$config{remote_loc} -n $config{remote_user}:$config{remote_pass} -t $id -r`;
+					$content .= db_delete_running_entry_hash($running_hash);
 					$content .= "Torrent ID: " . $id . "\n";
 					$content .= "Name: " . $name . " has been flagged for deletion\n\n";
 					push(@torrent_del_names, $name);
