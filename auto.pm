@@ -415,10 +415,10 @@ sub load_running_torrents {
 	my $download_location;
 	my $hash;
 
-    my $ds = get_datasource();
-    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+	my $ds = get_datasource();
+	my $dbh = DBI->connect($ds) || die "DBI::errstr";
 
-    my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
+	my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
 	$query->execute;
 	$query->bind_columns(\$torrent_location,\$download_location,\$hash);
 
