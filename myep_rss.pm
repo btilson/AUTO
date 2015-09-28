@@ -127,7 +127,8 @@ sub load_my_eps_today {
 			$show =~ s/\s/_/g;
 			
 			# Swap out special characters in name for nothing
-			$show =~ s/\W//g;
+			# Commented out it breaks matching on shows with hyphens
+			# $show =~ s/\W//g;
 	
 			# Swap out underscores for whitespace again
 			$show =~ s/_/ /g;
@@ -180,7 +181,7 @@ sub load_my_eps_today {
 					$hadDL = "N";
 				}
 			}
-			
+
 			if ($hadDL eq 'Y') {
 				$rssInfoList .= "<td><center>&#10004;</center></td>\n";
 			} else {
