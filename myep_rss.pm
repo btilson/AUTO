@@ -26,7 +26,8 @@ sub retrieve_my_eps_today {
 	
 	my $rootDir = $config{rss_down_loc};
   # todays myepisodes rss
-	my $rssUrl = $config{my_eps_rss};
+	#my $rssUrl = $config{my_eps_rss};
+	my $rssUrl = "http://www.myepisodes.com/rss.php?feed=all&uid=auto_user&pwdmd5=d73a4d380561ec4b316f4532b70d90a2";
   
 	my $rss = new XML::RSS;
   $content = get($rssUrl);
@@ -45,7 +46,7 @@ sub retrieve_my_eps_today {
 				for my $db_rss_show_name ( keys %shows ) {
 					$show =~ s/\'/\-quote\-/g;
 					$epName =~ s/\'/\-quote\-/g;
-					if ($show =~ /$db_rss_show_name/i) {
+					if ($show =~ /^$db_rss_show_name$/i) {
 						$working .= "Episode of " . $show . " out today, adding to DB\n";
 						$query = $dbh->prepare("INSERT INTO my_eps_today values ('$show','$seasonEp','$epName')") || die "DBI::errstr";
       			$query->execute();
