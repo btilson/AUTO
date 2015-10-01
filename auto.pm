@@ -671,6 +671,10 @@ sub process_rss {
 
                 	$return .= "$item->{'title'}\n" unless $verbose == 0;
                 	#print "$item->{'link'}\n";
+
+			# Ensure the auto directory exists beforehand - matters on first use
+                	directory_check($config{torrent_loc}."/auto/");
+
                 	my $torrent_location = $config{torrent_loc}."/auto/".$item->{'title'}.".torrent";
                 	#print "$torrent_location\n";
                 	if (-e "$torrent_location") {
