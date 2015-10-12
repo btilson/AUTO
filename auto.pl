@@ -787,14 +787,18 @@ sub gen_operate_content ($$$) {
 		if ($filter_text eq "") {
 			if ($filter eq "all") {
 				$content .= "Sorry, there are no torrents running right now\n";
+			}  elsif ($filter eq "error") {
+				$content .= "Nice! There are no ". lc($filters{$filter}) ." torrents right now\n";
 			}  else {
-				$content .= "Sorry, there are no $filters{$filter} torrents right now\n";
+				$content .= "Sorry, there are no ". lc($filters{$filter}) ." torrents right now\n";
 			}
 		} else {
 			if ($filter eq "all") {
 				$content .= "Sorry, there are no torrents running right now that match $filter_text\n";
+			}  elsif ($filter eq "error") {
+				$content .= "Nice! There are no ". lc($filters{$filter}) ." torrents right now that match $filter_text\n";
 			}  else {
-				$content .= "Sorry, there are no $filters{$filter} torrents right now that match $filter_text\n";
+				$content .= "Sorry, there are no ". lc($filters{$filter}) ." torrents right now that match $filter_text\n";
 			}
 		}
 		return $content;
@@ -1367,10 +1371,11 @@ sub gen_rcontrol_add_submit () {
 
 	my $content = "";
 
-	my %db_add_rss_show_return = db_add_rss_show($show,$inclusions,$exclusions);	
-	$content = $db_add_rss_show_return{info};
-
 	$content = gen_rcontrol();
+
+	if ($show ne "") {
+		my %db_add_rss_show_return = db_add_rss_show($show,$inclusions,$exclusions);	
+	}
 
 	return $content;
 }
@@ -1508,10 +1513,11 @@ sub gen_mcontrol_add_submit () {
 
 	my $content = "";
 
-	my %db_add_rss_movie_return = db_add_rss_movie($movie,$inclusions,$exclusions);	
-	$content = $db_add_rss_movie_return{info};
-
 	$content = gen_mcontrol();
+
+	if ($movie ne "") {
+		my %db_add_rss_movie_return = db_add_rss_movie($movie,$inclusions,$exclusions);	
+	}
 
 	return $content;
 }
