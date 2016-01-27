@@ -2062,6 +2062,10 @@ sub send_mail ($) {
 
 	#make sure we actually have someting to say!
 	if ($files ne "") {
+	
+		my $auto_url = $config{auto_url};
+		my $page_url = $auto_url . "?page=operate&filter=download" if $auto_url; 
+		
 		my $sendmail = "/usr/sbin/sendmail -f downloads -t";
 		my $subject = "Subject: AUTO has begun downloading file(s)\n";
 		my $send_to = "To: ".$emails."\n";
@@ -2077,6 +2081,8 @@ sub send_mail ($) {
 		print SENDMAIL "<br />";
 		print SENDMAIL "<strong>" . $files . "</strong>\n";
 		# print SENDMAIL "<strong>Filename:</strong> " . $content_array[8] . "<br />";
+		print SENDMAIL "<br />\n";
+		print SENDMAIL "<a href=\"" . $page_url . "\">AUTO Download Page</a><br />\n"  if $page_url;
 		print SENDMAIL "<br />\n";
 		print SENDMAIL "Enjoy the rest of your day!!</p>\n";
 		print SENDMAIL "</html>";
