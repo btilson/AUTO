@@ -416,7 +416,7 @@ sub load_running_torrents {
 	my $hash;
 
 	my $ds = get_datasource();
-	my $dbh = DBI->connect($ds) || die "DBI::errstr";
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
 
 	my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
 	$query->execute;
@@ -671,8 +671,8 @@ sub process_rss {
 
                 	$return .= "$item->{'title'}\n" unless $verbose == 0;
                 	#print "$item->{'link'}\n";
-
-			# Ensure the auto directory exists beforehand - matters on first use
+					
+					# Ensure the auto directory exists beforehand - matters on first use
                 	directory_check($config{torrent_loc}."/auto/");
 
                 	my $torrent_location = $config{torrent_loc}."/auto/".$item->{'title'}.".torrent";
@@ -733,7 +733,13 @@ sub process_movie_rss {
 
 		# Change whitespace in movie name to be generic regex match anything characters
 		$search_value =~ s/\s/\./g;
-		
+
+        # Remove colons from movie name
+        $search_value =~ s/://g;
+                
+        # Change spaced hyphen in movie name to be generic regex match anything characters
+        $search_value =~ s/\.-\./\./g;
+
 		foreach my $item (@{$rss->{'items'}}) {
 			$item->{'title'} =~ s/\'//g;
        	         	next unless defined($item->{'title'}) && defined($item->{'link'});
