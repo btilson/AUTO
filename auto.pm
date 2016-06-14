@@ -416,7 +416,7 @@ sub load_running_torrents {
 	my $hash;
 
 	my $ds = get_datasource();
-    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+	my $dbh = DBI->connect($ds) || die "DBI::errstr";
 
 	my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
 	$query->execute;
@@ -671,8 +671,8 @@ sub process_rss {
 
                 	$return .= "$item->{'title'}\n" unless $verbose == 0;
                 	#print "$item->{'link'}\n";
-					
-					# Ensure the auto directory exists beforehand - matters on first use
+	
+			# Ensure the auto directory exists beforehand - matters on first use
                 	directory_check($config{torrent_loc}."/auto/");
 
                 	my $torrent_location = $config{torrent_loc}."/auto/".$item->{'title'}.".torrent";
@@ -734,11 +734,11 @@ sub process_movie_rss {
 		# Change whitespace in movie name to be generic regex match anything characters
 		$search_value =~ s/\s/\./g;
 
-        # Remove colons from movie name
-        $search_value =~ s/://g;
-                
-        # Change spaced hyphen in movie name to be generic regex match anything characters
-        $search_value =~ s/\.-\./\./g;
+		# Remove colons from movie name
+		$search_value =~ s/://g;
+
+		# Change spaced hyphen in movie name to be generic regex match anything characters
+		$search_value =~ s/\.-\./\./g;
 
 		foreach my $item (@{$rss->{'items'}}) {
 			$item->{'title'} =~ s/\'//g;
@@ -1558,22 +1558,16 @@ sub db_add_rss_movie {
 	my %return;
 
 	#Remove all whitespace at the start of text
-    $movie =~ s/^\s+//;
-    $inclusions =~ s/^\s+//;
-    $exclusions =~ s/^\s+//;
+	$movie =~ s/^\s+//;
+	$inclusions =~ s/^\s+//;
+	$exclusions =~ s/^\s+//;
 	
 	#Remove all whitespace at the end of text
-    $movie =~ s/\s+$//;
-    $inclusions =~ s/\s+$//;
-    $exclusions =~ s/\s+$//;
+	$movie =~ s/\s+$//;
+	$inclusions =~ s/\s+$//;
+	$exclusions =~ s/\s+$//;
        	
-	#set all letters to lower case	
-	$movie =~ tr/[a-z]/[A-Z]/;
-
-	#Capitalise first letter of every word
-	$movie =~ s/(?<=\w)(.)/\l$1/g;
-	
-	if ($inclusions =~ m/^(\d{4}),.*$/){
+	if ($inclusions =~ m/^(\d{4}),.*$/ || $inclusions =~ m/^(\d{4})$/){
 		$year = $1;
 	}
 	my $film = new IMDB::Film(crit => $movie, year => $year);
@@ -1583,6 +1577,15 @@ sub db_add_rss_movie {
 		$imdb_code = 'NA';
 	}
 	
+	$movie =~ s/'//g;
+
+	# Now clean up the name formatting - Cant do this before stripping the ' as it capitalised after the ' as well
+	#set all letters to lower case
+	$movie =~ tr/[a-z]/[A-Z]/;
+
+	#Capitalise first letter of every word
+	$movie =~ s/(?<=\w)(.)/\l$1/g;
+
 	if ( defined($rt_api_key) && $rt_api_key ne '' ) {
 		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
 		my $query_response = $api->movies_search( query => $movie );
@@ -2552,7 +2555,7 @@ sub cli_update_movierss_dates {
 		while ($query->fetch) {
 		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
 		my $query_response = $api->movies_search( query => $movie, page => 1, page_limit => 5 );
-		if ($inclusions =~ m/^(\d{4}),.*$/){
+		if ($inclusions =~ m/^(\d{4}),.*$/ || $inclusions =~ m/^(\d{4})$/){
 			$year = $1;
 		}
 		my $decoded_json = decode_json($query_response);
