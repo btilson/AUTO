@@ -416,7 +416,7 @@ sub load_running_torrents {
 	my $hash;
 
 	my $ds = get_datasource();
-	my $dbh = DBI->connect($ds) || die "DBI::errstr";
+    my $dbh = DBI->connect($ds) || die "DBI::errstr";
 
 	my $query = $dbh->prepare("select * from running_torrents") || die "DBI::errstr";
 	$query->execute;
@@ -671,8 +671,8 @@ sub process_rss {
 
                 	$return .= "$item->{'title'}\n" unless $verbose == 0;
                 	#print "$item->{'link'}\n";
-	
-			# Ensure the auto directory exists beforehand - matters on first use
+					
+					# Ensure the auto directory exists beforehand - matters on first use
                 	directory_check($config{torrent_loc}."/auto/");
 
                 	my $torrent_location = $config{torrent_loc}."/auto/".$item->{'title'}.".torrent";
@@ -734,11 +734,11 @@ sub process_movie_rss {
 		# Change whitespace in movie name to be generic regex match anything characters
 		$search_value =~ s/\s/\./g;
 
-		# Remove colons from movie name
-		$search_value =~ s/://g;
-
-		# Change spaced hyphen in movie name to be generic regex match anything characters
-		$search_value =~ s/\.-\./\./g;
+        # Remove colons from movie name
+        $search_value =~ s/://g;
+                
+        # Change spaced hyphen in movie name to be generic regex match anything characters
+        $search_value =~ s/\.-\./\./g;
 
 		foreach my $item (@{$rss->{'items'}}) {
 			$item->{'title'} =~ s/\'//g;
@@ -1539,7 +1539,6 @@ sub db_delete_rss_entry {
 sub db_add_rss_movie {
 	use DBI;
 	use IMDB::Film;
-	use WWW::RottenTomatoes;
 	use JSON;
 
 	my $movie = shift;
@@ -1550,24 +1549,29 @@ sub db_add_rss_movie {
 	my $theater_release_date;
 	my $imdb_code;
 	
-    my $ds = get_datasource();
-    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+    	my $ds = get_datasource();
+    	my $dbh = DBI->connect($ds) || die "DBI::errstr";
 	my %config = load_config();
 
-	my $rt_api_key = $config{rt_api_key};
 	my %return;
 
 	#Remove all whitespace at the start of text
-	$movie =~ s/^\s+//;
-	$inclusions =~ s/^\s+//;
-	$exclusions =~ s/^\s+//;
+    $movie =~ s/^\s+//;
+    $inclusions =~ s/^\s+//;
+    $exclusions =~ s/^\s+//;
 	
 	#Remove all whitespace at the end of text
-	$movie =~ s/\s+$//;
-	$inclusions =~ s/\s+$//;
-	$exclusions =~ s/\s+$//;
+    $movie =~ s/\s+$//;
+    $inclusions =~ s/\s+$//;
+    $exclusions =~ s/\s+$//;
        	
-	if ($inclusions =~ m/^(\d{4}),.*$/ || $inclusions =~ m/^(\d{4})$/){
+	#set all letters to lower case	
+	$movie =~ tr/[a-z]/[A-Z]/;
+
+	#Capitalise first letter of every word
+	$movie =~ s/(?<=\w)(.)/\l$1/g;
+	
+	if ($inclusions =~ m/^(\d{4}),.*$/){
 		$year = $1;
 	}
 	my $film = new IMDB::Film(crit => $movie, year => $year);
@@ -1577,31 +1581,28 @@ sub db_add_rss_movie {
 		$imdb_code = 'NA';
 	}
 	
-	$movie =~ s/'//g;
+	(my $omdbMovie = $movie) =~ s/\s/\+/g; 
+        my $omdbAPIURL = "http://www.omdbapi.com/?t=$omdbMovie&y=$year&plot=short&tomatoes=true&r=json";
+        my $omdbjson = get( $omdbAPIURL );
+        my $decoded_json = decode_json($omdbjson);
 
-	# Now clean up the name formatting - Cant do this before stripping the ' as it capitalised after the ' as well
-	#set all letters to lower case
-	$movie =~ tr/[a-z]/[A-Z]/;
-
-	#Capitalise first letter of every word
-	$movie =~ s/(?<=\w)(.)/\l$1/g;
-
-	if ( defined($rt_api_key) && $rt_api_key ne '' ) {
-		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
-		my $query_response = $api->movies_search( query => $movie );
-		my $decoded_json = decode_json($query_response);
-		for my $i (0..5){	
-			my $test_year = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+	
+	if ( defined($decoded_json) && $decoded_json ne '' ) {
+		for my $i (0..5){
+			my $test_year = $decoded_json->{"Released"};	
+			if ( !defined($test_year) ) {
+                                $test_year =  $decoded_json->{"Year"};
+                        }
 			if ( defined($test_year) ) {
-				if ($test_year =~ m/^(\d{4})-.*$/){
+				if ($test_year =~ m/^.*(\d{4})$/){
 					$test_year = $1;
 				}
 				if ($test_year == $year) {
-					$dvd_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"dvd"};
+					$dvd_release_date = $decoded_json->{"DVD"};
 					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
 						$dvd_release_date = 'TBA';
 					}
-					$theater_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+					$theater_release_date = $decoded_json->{"Released"};
 					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
 						$theater_release_date = 'TBA';
 					}
@@ -2051,7 +2052,7 @@ sub cli_start_transmission {
 	my $return = "";
 	my %config = load_config();
 
-	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1 -g ~/.transmission`;
+	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1,137.166.*.* -g ~/.transmission`;
 
 	sleep 5;
 
@@ -2541,10 +2542,7 @@ sub cli_update_movierss_dates {
     my $dbh = DBI->connect($ds) || die "DBI::errstr";
 	my %config = load_config();
 
-    my $rt_api_key = $config{rt_api_key};
     my $content;
-	if ( defined($rt_api_key) || $rt_api_key ne '' ) {
-			
 		# Pull all movies
 		my $query = $dbh->prepare("Select movie, include from rss_movies") || die "DBI::errstr";
 		$query->execute();
@@ -2553,24 +2551,27 @@ sub cli_update_movierss_dates {
 		
 		# Run the query and check for a match for movie names (double check)
 		while ($query->fetch) {
-		my $api = WWW::RottenTomatoes->new( api_key => $rt_api_key, pretty_print => 'true' );
-		my $query_response = $api->movies_search( query => $movie, page => 1, page_limit => 5 );
-		if ($inclusions =~ m/^(\d{4}),.*$/ || $inclusions =~ m/^(\d{4})$/){
+
+		if ($inclusions =~ m/^(\d{4}),.*$/){
 			$year = $1;
 		}
-		my $decoded_json = decode_json($query_response);
+
+                (my $omdbMovie = $movie) =~ s/\s/\+/g;
+                my $omdbAPIURL = "http://www.omdbapi.com/?t=$omdbMovie&y=$year&plot=short&tomatoes=true&r=json";
+                my $omdbjson = get( $omdbAPIURL );
+		my $decoded_json = decode_json($omdbjson);
 		for my $i (0..5){
-			$test_year = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+			$test_year = $decoded_json->{"Released"};
 			if ( defined($test_year) ) {
-				if ($test_year =~ m/^(\d{4})-.*$/){
+				if ($test_year =~ m/^.*(\d{4})$/){
 					$test_year = $1;
 				}
 				if ($test_year == $year) {
-					$dvd_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"dvd"};
+					$dvd_release_date = $decoded_json->{"DVD"};
 					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
 						$dvd_release_date = 'TBA';
 					}
-					$theater_release_date = $decoded_json->{"movies"}->[$i]->{"release_dates"}->{"theater"};
+					$theater_release_date = $decoded_json->{"Released"};
 					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
 										$theater_release_date = 'TBA';
 					}
@@ -2589,9 +2590,6 @@ sub cli_update_movierss_dates {
 			$query = $dbh->prepare($_) || die "DBI::errstr";
 			$query->execute();
 		}
-	} else {
-		$content .= "No Rotten Tomatoes API key set in config, release dates update aborted\n";
-	}
 	return $content;
 }
 
