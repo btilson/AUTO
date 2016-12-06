@@ -2052,7 +2052,7 @@ sub cli_start_transmission {
 	my $return = "";
 	my %config = load_config();
 
-	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1,137.166.*.* -g ~/.transmission`;
+	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1 -g ~/.transmission`;
 
 	sleep 5;
 
