@@ -1371,11 +1371,12 @@ sub gen_rcontrol_add_submit () {
 
 	my $content = "";
 
-	$content = gen_rcontrol();
 
 	if ($show ne "") {
 		my %db_add_rss_show_return = db_add_rss_show($show,$inclusions,$exclusions);	
 	}
+
+	$content = gen_rcontrol();
 
 	return $content;
 }
@@ -1513,11 +1514,11 @@ sub gen_mcontrol_add_submit () {
 
 	my $content = "";
 
-	$content = gen_mcontrol();
-
 	if ($movie ne "") {
 		my %db_add_rss_movie_return = db_add_rss_movie($movie,$inclusions,$exclusions);	
 	}
+	
+	$content = gen_mcontrol();
 
 	return $content;
 }
