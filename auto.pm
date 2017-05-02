@@ -1552,24 +1552,28 @@ sub db_add_rss_movie {
     	my $ds = get_datasource();
     	my $dbh = DBI->connect($ds) || die "DBI::errstr";
 	my %config = load_config();
+	my $tmdb_api_key = $config{tmdb_api_key};	
 
 	my %return;
 
 	#Remove all whitespace at the start of text
-    $movie =~ s/^\s+//;
-    $inclusions =~ s/^\s+//;
-    $exclusions =~ s/^\s+//;
+    	$movie =~ s/^\s+//;
+    	$inclusions =~ s/^\s+//;
+    	$exclusions =~ s/^\s+//;
 	
 	#Remove all whitespace at the end of text
-    $movie =~ s/\s+$//;
-    $inclusions =~ s/\s+$//;
-    $exclusions =~ s/\s+$//;
+    	$movie =~ s/\s+$//;
+    	$inclusions =~ s/\s+$//;
+    	$exclusions =~ s/\s+$//;
        	
 	#set all letters to lower case	
 	$movie =~ tr/[a-z]/[A-Z]/;
 
 	#Capitalise first letter of every word
 	$movie =~ s/(?<=\w)(.)/\l$1/g;
+
+	#Lower case S if lowercase plural
+	$movie =~ s/'S/'s/g;
 	
 	if ($inclusions =~ m/^(\d{4}),.*$/){
 		$year = $1;
@@ -1580,41 +1584,49 @@ sub db_add_rss_movie {
 	} else {
 		$imdb_code = 'NA';
 	}
-	
-	(my $omdbMovie = $movie) =~ s/\s/\+/g; 
-        my $omdbAPIURL = "http://www.omdbapi.com/?t=$omdbMovie&y=$year&plot=short&tomatoes=true&r=json";
-        my $omdbjson = get( $omdbAPIURL );
-        my $decoded_json = decode_json($omdbjson);
 
-	
-	if ( defined($decoded_json) && $decoded_json ne '' ) {
-		for my $i (0..5){
-			my $test_year = $decoded_json->{"Released"};	
-			if ( !defined($test_year) ) {
-                                $test_year =  $decoded_json->{"Year"};
-                        }
-			if ( defined($test_year) ) {
-				if ($test_year =~ m/^.*(\d{4})$/){
-					$test_year = $1;
+	if ( defined($tmdb_api_key) && $tmdb_api_key ne '' ) {
+
+		(my $tmdbMovie = $movie) =~ s/\s/\+/g;
+        	my $tmdbAPIURL = "https://api.themoviedb.org/3/search/movie?api_key=$tmdb_api_key&query=$tmdbMovie&year=$year";
+        	my $tmdbjson = get( $tmdbAPIURL );
+        	my $decoded_json = decode_json($tmdbjson);
+
+        	my $movie_id = $decoded_json->{"results"}[0]->{"id"};
+        	$theater_release_date = $decoded_json->{"results"}[0]->{"release_date"};
+
+        	$tmdbAPIURL = "https://api.themoviedb.org/3/movie/$movie_id/release_dates?api_key=$tmdb_api_key";
+        	$tmdbjson = get( $tmdbAPIURL );
+	        $decoded_json = decode_json($tmdbjson);
+
+        	for (my $i=0; $i <= 30; $i++) {
+        		my $resultNumber = $i;
+                	for (my $z=0; $z <= 3; $z++) {
+                		my $type = $decoded_json->{"results"}[$resultNumber]->{"release_dates"}[$z]->{"type"};
+				if ( defined($type) ) {
+                        		if ($type eq 5) {
+                        			$dvd_release_date = $decoded_json->{"results"}[$resultNumber]->{"release_dates"}[$z]->{"release_date"};
+                                		$dvd_release_date =~ s/T.*//;
+                                		last;
+                        		}
 				}
-				if ($test_year == $year) {
-					$dvd_release_date = $decoded_json->{"DVD"};
-					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
-						$dvd_release_date = 'TBA';
-					}
-					$theater_release_date = $decoded_json->{"Released"};
-					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
-						$theater_release_date = 'TBA';
-					}
-					last;
-				}
-			}	
-			$i++;
+        	        }
 		}
-	} else {
-		$dvd_release_date = 'NA';
-		$theater_release_date = 'NA';
+
+      		if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
+        		$dvd_release_date = 'TBA';
+        	}
+        	if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
+    			$theater_release_date = 'TBA';
+        	}
 	}
+	else {
+		$dvd_release_date = 'NA';
+		$theater_release_date = 'NA';		
+	}	
+	
+	# Escape single quotes for SQLite insert
+	$movie =~ s/'/''/g;
 
 	# Prepare string as an insert 
 	my $query_string = "INSERT INTO rss_movies values ('$movie','$exclusions','$inclusions','$imdb_code','$dvd_release_date','$theater_release_date')";
@@ -1651,6 +1663,9 @@ sub db_delete_rss_movie_entry {
 	use DBI;
 	
 	my $movie = shift;
+	
+	# Escape single quotes for SQLite insert
+        $movie =~ s/'/''/g;	
 
         my $ds = get_datasource();
         my $dbh = DBI->connect($ds) || die "DBI::errstr";
@@ -2052,7 +2067,7 @@ sub cli_start_transmission {
 	my $return = "";
 	my %config = load_config();
 
-	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1 -g ~/.transmission`;
+	$return .= `$config{daemon_loc} -a 192.168.*.*,127.0.0.1,137.166.*.* -g ~/.transmission`;
 
 	sleep 5;
 
@@ -2527,69 +2542,88 @@ sub cli_delete_old_torrents {
 sub cli_update_movierss_dates {
 
 	use DBI;
-    use WWW::RottenTomatoes;
-    use JSON;
+    	use JSON;
 		
 	my $movie;
 	my $inclusions;
-    my $year;
+    	my $year;
 	my $test_year;
-    my $dvd_release_date;
-    my $theater_release_date;
+    	my $dvd_release_date;
+    	my $theater_release_date;
 	my @sql_updates;
 		
 	my $ds = get_datasource();
-    my $dbh = DBI->connect($ds) || die "DBI::errstr";
+    	my $dbh = DBI->connect($ds) || die "DBI::errstr";
 	my %config = load_config();
+	my $tmdb_api_key = $config{tmdb_api_key};
 
-    my $content;
-		# Pull all movies
-		my $query = $dbh->prepare("Select movie, include from rss_movies") || die "DBI::errstr";
-		$query->execute();
+    	my $content;
+	# Pull all movies
+	my $query = $dbh->prepare("Select movie, include from rss_movies") || die "DBI::errstr";
+	$query->execute();
 		
-		$query->bind_columns(\$movie,\$inclusions);
+	$query->bind_columns(\$movie,\$inclusions);
+	
+	# Run the query and check for a match for movie names (double check)
+	while ($query->fetch) {
 		
-		# Run the query and check for a match for movie names (double check)
-		while ($query->fetch) {
+		$dvd_release_date = '';
+		$theater_release_date = '';
 
 		if ($inclusions =~ m/^(\d{4}),.*$/){
 			$year = $1;
 		}
 
-                (my $omdbMovie = $movie) =~ s/\s/\+/g;
-                my $omdbAPIURL = "http://www.omdbapi.com/?t=$omdbMovie&y=$year&plot=short&tomatoes=true&r=json";
-                my $omdbjson = get( $omdbAPIURL );
-		my $decoded_json = decode_json($omdbjson);
-		for my $i (0..5){
-			$test_year = $decoded_json->{"Released"};
-			if ( defined($test_year) ) {
-				if ($test_year =~ m/^.*(\d{4})$/){
-					$test_year = $1;
-				}
-				if ($test_year == $year) {
-					$dvd_release_date = $decoded_json->{"DVD"};
-					if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
-						$dvd_release_date = 'TBA';
+		if ( defined($tmdb_api_key) && $tmdb_api_key ne '' ) {
+		
+			(my $tmdbMovie = $movie) =~ s/\s/\+/g;
+			my $tmdbAPIURL = "https://api.themoviedb.org/3/search/movie?api_key=$tmdb_api_key&query=$tmdbMovie&year=$year";
+			my $tmdbjson = get( $tmdbAPIURL );
+			my $decoded_json = decode_json($tmdbjson);
+
+			my $movie_id = $decoded_json->{"results"}[0]->{"id"};
+			$theater_release_date = $decoded_json->{"results"}[0]->{"release_date"};
+
+			$tmdbAPIURL = "https://api.themoviedb.org/3/movie/$movie_id/release_dates?api_key=$tmdb_api_key";
+			$tmdbjson = get( $tmdbAPIURL );
+			$decoded_json = decode_json($tmdbjson);
+
+			for (my $i=0; $i <= 30; $i++) {
+	        		my $resultNumber = $i;
+       				for (my $z=0; $z <= 3; $z++) {
+               				my $type = $decoded_json->{"results"}[$resultNumber]->{"release_dates"}[$z]->{"type"};
+               				if ( defined($type) ) {
+						if ($type eq 5) {
+                       					$dvd_release_date = $decoded_json->{"results"}[$resultNumber]->{"release_dates"}[$z]->{"release_date"};
+                       					$dvd_release_date =~ s/T.*//;
+                       					last;
+               					}
 					}
-					$theater_release_date = $decoded_json->{"Released"};
-					if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
-										$theater_release_date = 'TBA';
-					}
-					last;
-				}
+       				}
 			}
-			$i++;
+
+			if ( ! defined($dvd_release_date) || $dvd_release_date eq '' ) {
+				$dvd_release_date = 'TBA';
+			}
+			if ( ! defined($theater_release_date) || $theater_release_date eq '' ) {
+				$theater_release_date = 'TBA';
+			}
 		}
+		else {
+			$dvd_release_date = 'NA';
+			$theater_release_date = 'NA';
+		}
+
 		my $query_string = "update rss_movies set theater_release_date = '$theater_release_date', dvd_release_date = '$dvd_release_date' where movie = '$movie'";
 		$content .= "RSS movie " . $movie . " has been updated, Theater Release Date: " . $theater_release_date . "  DVD Release Date: " . $dvd_release_date . "\n";
 		push (@sql_updates, $query_string);
 					
-		}
+	}
 		
-		foreach (@sql_updates) {
-			$query = $dbh->prepare($_) || die "DBI::errstr";
-			$query->execute();
-		}
+	foreach (@sql_updates) {
+		$query = $dbh->prepare($_) || die "DBI::errstr";
+		$query->execute();
+	}
 	return $content;
 }
 
